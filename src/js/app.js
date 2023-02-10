@@ -1,3 +1,4 @@
+import '../images/badger.png'
 import { Elm } from "../elm/src/App.elm";
 
 const app = Elm.App.init();

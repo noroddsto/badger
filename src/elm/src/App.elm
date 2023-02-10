@@ -287,7 +287,7 @@ getTextboxDimension =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Page"
+    { title = "Badger"
     , body =
         [ H.main_ [ HA.class "h-screen" ]
             [ H.h1 [ HA.class "sr-only" ] [ H.text "Create badges" ]
