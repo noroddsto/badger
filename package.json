@@ -4,12 +4,14 @@
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
     "start": "parcel",
-    "build": "parcel build --public-url '.'"
+    "build": "parcel build --public-url '.' --dist-dir build ",
+    "deploy": "gh-pages -d build"
   },
   "devDependencies": {
     "@parcel/transformer-elm": "^2.8.2",
     "elm": "^0.19.1-5",
     "elm-review": "^2.9.1",
+    "gh-pages": "^5.0.0",
     "parcel": "^2.8.2",
     "postcss": "^8.4.21",
     "tailwindcss": "^3.2.4"
