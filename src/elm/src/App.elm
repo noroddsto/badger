@@ -261,7 +261,7 @@ update msg model =
                 |> noCmd
 
         DownloadSvg ->
-            ( model, Ports.downloadSvg { domId = "generated-svg", fileName = "generated" } )
+            ( model, Ports.downloadSvg { domId = "generated-svg", fileName = "Result" } )
 
         ToggleMenu ->
             ( { model | menuToggled = not model.menuToggled }, Cmd.none )
