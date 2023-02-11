@@ -652,6 +652,7 @@ rSvgTextOnly model =
     rSvgBody model.width
         model.height
         model.backgroundColor
+        model.mainText
         [ rText model.mainText model.fontFamily model.fontWeight model.fontSize model.textColor model.textOpacity textPosition
         ]
 
@@ -674,6 +675,7 @@ rSvgTextAndIcon model =
     rSvgBody model.width
         model.height
         model.backgroundColor
+        model.mainText
         [ Svg.defs []
             [ iconOutput.svg
             ]
@@ -705,15 +707,15 @@ type alias SvgTextOnlyConfig =
     }
 
 
-rSvgBody : Int -> Int -> Color.Hex -> List (Svg.Svg msg) -> Svg.Svg msg
-rSvgBody width height bgColor content =
+rSvgBody : Int -> Int -> Color.Hex -> String -> List (Svg.Svg msg) -> Svg.Svg msg
+rSvgBody width height bgColor text content =
     Svg.svg
         [ SA.width (String.fromInt width)
         , SA.height (String.fromInt height)
         , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
         , Helper.Svg.viewBox width height
         , SA.id "generated-svg"
-        , VirtualDom.attribute "aria-label" "Result of calculation. This image can be downloaded."
+        , VirtualDom.attribute "aria-label" text
         ]
         (Svg.rect
             [ SA.width (String.fromInt width)
