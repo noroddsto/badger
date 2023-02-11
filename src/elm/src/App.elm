@@ -13,6 +13,7 @@ import Helper.Contrast as Contrast
 import Helper.Form as HF
 import Helper.SegmentButton as SB
 import Helper.Style as Style
+import Helper.Svg
 import Helper.SvgInput as IconInput
 import Helper.Update exposing (noCmd, parseInt, withCmd)
 import Html as H
@@ -710,6 +711,7 @@ rSvgBody width height bgColor content =
         [ SA.width (String.fromInt width)
         , SA.height (String.fromInt height)
         , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
+        , Helper.Svg.viewBox width height
         , SA.id "generated-svg"
         , VirtualDom.attribute "aria-label" "Result of calculation. This image can be downloaded."
         ]
