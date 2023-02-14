@@ -718,6 +718,7 @@ rSvgBody width height bgColor text content =
         , Helper.Svg.viewBox width height
         , SA.id "generated-svg"
         , VirtualDom.attribute "aria-label" text
+        , SA.version "1.1"
         ]
         (Svg.rect
             [ SA.width (String.fromInt width)
