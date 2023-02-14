@@ -713,6 +713,7 @@ rSvgBody width height bgColor text content =
         [ SA.width (String.fromInt width)
         , SA.height (String.fromInt height)
         , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
+        , VirtualDom.attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
         , Helper.Svg.viewBox width height
         , SA.id "generated-svg"
         , VirtualDom.attribute "aria-label" text
