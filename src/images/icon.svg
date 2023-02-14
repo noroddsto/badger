@@ -1,11 +1,5 @@
 <svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="192" height="192" fill="#2356A3"/>
-<g opacity="0.2">
-<rect x="4.64062" y="41.1724" width="154.741" height="146.018" transform="rotate(-12 4.64062 41.1724)" fill="black" style="mix-blend-mode:soft-light"/>
-</g>
-<g opacity="0.1">
-<rect x="36.5645" y="3.89764" width="156.425" height="154.031" transform="rotate(12.9679 36.5645 3.89764)" fill="black" style="mix-blend-mode:soft-light"/>
-</g>
 <g opacity="0.4">
 <rect x="60.0605" y="2.59253" width="141.142" height="142.749" transform="rotate(24 60.0605 2.59253)" fill="black" style="mix-blend-mode:soft-light"/>
 </g>
