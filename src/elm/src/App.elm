@@ -345,7 +345,7 @@ vSettingsForm model =
 vTextFields : Model -> H.Html Msg
 vTextFields model =
     H.section [ HA.class "bg-white p-4 mb-6 " ]
-        [ H.h3 [ Style.h3 ] [ H.text "Text settings" ]
+        [ H.h3 [ Style.h3 ] [ H.text "Text" ]
         , HF.inputField
             { id = "text-main-text"
             , label = "Text"
@@ -431,7 +431,7 @@ vIconFields model =
     H.section [ HA.class "bg-white p-4" ]
         (case model.confirmedSvg of
             Nothing ->
-                [ H.h3 [ Style.h3 ] [ H.text "Icon settings" ]
+                [ H.h3 [ Style.h3 ] [ H.text "Icon" ]
                 , H.button
                     [ HA.class "flex gap-3 items-center fill-blue-700 text-blue-700 hover:text-blue-800 hover:fill-blue-800 hover:underline"
                     , HE.onClick AddSvg
@@ -440,7 +440,7 @@ vIconFields model =
                 ]
 
             Just _ ->
-                [ H.h3 [ Style.h3 ] [ H.text "Icon settings" ]
+                [ H.h3 [ Style.h3 ] [ H.text "Icon" ]
                 , SB.fieldSet "Layout direction"
                     [ SB.optionList
                         { name = "layout_direction"
@@ -515,7 +515,7 @@ vIconFields model =
 vCanvasFields : Model -> H.Html Msg
 vCanvasFields model =
     H.section [ HA.class "p-4 bg-white mb-6" ]
-        [ H.h3 [ Style.h3 ] [ H.text "Canvas settings" ]
+        [ H.h3 [ Style.h3 ] [ H.text "Canvas" ]
         , HF.field
             [ HF.labelFor "canvas-width" "Width (px)"
             , H.input
