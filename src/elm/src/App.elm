@@ -734,7 +734,7 @@ rText value font fontWeight fontSize color opacity textPosition =
     Svg.text_
         [ SA.fontWeight (FontWeight.toString fontWeight)
         , SA.id "svg-text"
-        , SA.dominantBaseline textPosition.dominantBaseline
+        , SA.alignmentBaseline textPosition.dominantBaseline
         , SA.textAnchor textPosition.textAnchor
         , SA.fontSize (FontSize.toValueString fontSize)
         , SA.x (String.fromFloat textPosition.x)
