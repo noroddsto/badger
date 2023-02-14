@@ -681,6 +681,7 @@ rSvgTextAndIcon model =
             ]
         , Svg.use
             [ VirtualDom.attribute "href" "#icon"
+            , VirtualDom.attribute "xlink:href" "#icon"
             , SA.width (String.fromFloat iconSize.width)
             , SA.height (String.fromFloat iconSize.height)
             , SA.x (String.fromFloat iconPosition.x)
