@@ -645,7 +645,7 @@ rSvgTextOnly model =
         textPosition =
             { x = toFloat model.width / 2
             , y = toFloat model.height / 2
-            , dominantBaseline = "middle"
+            , dy = Font.dyCenter model.textBoxSize.height model.fontFamily
             , textAnchor = "middle"
             }
     in
@@ -670,7 +670,7 @@ rSvgTextAndIcon model =
             calculateIconSize canvas model.size iconOutput.aspectRatio
 
         { iconPosition, textPosition } =
-            calculateTextAndIconPositions model.layoutDirection canvas iconSize model.textBoxSize model.spaceBetween
+            calculateTextAndIconPositions model.layoutDirection model.fontFamily canvas iconSize model.textBoxSize model.spaceBetween
     in
     rSvgBody model.width
         model.height
@@ -735,11 +735,11 @@ rText value font fontWeight fontSize color opacity textPosition =
     Svg.text_
         [ SA.fontWeight (FontWeight.toString fontWeight)
         , SA.id "svg-text"
-        , SA.dominantBaseline textPosition.dominantBaseline
         , SA.textAnchor textPosition.textAnchor
         , SA.fontSize (FontSize.toValueString fontSize)
         , SA.x (String.fromFloat textPosition.x)
         , SA.y (String.fromFloat textPosition.y)
+        , SA.dy (String.fromFloat textPosition.dy)
         , SA.fill (Color.toHexString color)
         , SA.fontFamily (font |> Font.getName)
         , SA.fillOpacity (String.fromFloat <| Percentage.toDecimals opacity)
@@ -752,11 +752,11 @@ type alias IconPosition =
 
 
 type alias TextPosition =
-    { x : Float, y : Float, dominantBaseline : String, textAnchor : String }
+    { x : Float, y : Float, dy : Float, textAnchor : String }
 
 
-calculateTextAndIconPositions : LayoutDirection -> ElementSize -> ElementSize -> ElementSize -> Int -> { iconPosition : IconPosition, textPosition : TextPosition }
-calculateTextAndIconPositions layoutDirection canvas icon text spacing =
+calculateTextAndIconPositions : LayoutDirection -> Font.Font -> ElementSize -> ElementSize -> ElementSize -> Int -> { iconPosition : IconPosition, textPosition : TextPosition }
+calculateTextAndIconPositions layoutDirection font canvas icon text spacing =
     case layoutDirection of
         TopToBottom ->
             let
@@ -775,7 +775,7 @@ calculateTextAndIconPositions layoutDirection canvas icon text spacing =
                 textX =
                     canvas.width / 2
             in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dominantBaseline = "hanging", textAnchor = "middle" } }
+            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyHanging text.height font, textAnchor = "middle" } }
 
         BottomToTop ->
             let
@@ -794,7 +794,7 @@ calculateTextAndIconPositions layoutDirection canvas icon text spacing =
                 iconY =
                     textY + text.height + toFloat spacing
             in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dominantBaseline = "hanging", textAnchor = "middle" } }
+            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyHanging text.height font, textAnchor = "middle" } }
 
         LeftToRight ->
             let
@@ -813,7 +813,7 @@ calculateTextAndIconPositions layoutDirection canvas icon text spacing =
                 textY =
                     canvas.height / 2
             in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dominantBaseline = "middle", textAnchor = "start" } }
+            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyCenter text.height font, textAnchor = "start" } }
 
         RightToLeft ->
             let
@@ -832,7 +832,7 @@ calculateTextAndIconPositions layoutDirection canvas icon text spacing =
                 textY =
                     canvas.height / 2
             in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dominantBaseline = "middle", textAnchor = "end" } }
+            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyCenter text.height font, textAnchor = "end" } }
 
 
 calculateIconSize : ElementSize -> Percentage.Percentage -> Float -> ElementSize
