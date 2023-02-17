@@ -69,5 +69,5 @@ dyHanging emBoxHeight (Font _ _ emSize) =
 
 
 dyCenter : Float -> Font -> Float
-dyCenter emBoxHeight (Font n _ emSize) =
+dyCenter emBoxHeight (Font _ _ emSize) =
     (emSize * emBoxHeight) / 2
