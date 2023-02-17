@@ -129,7 +129,7 @@ type Msg
     | SetIconInput String
     | ConfirmIconInput
     | DeleteSvg
-    | SetFontWeight FontWeight.FontWeight
+    | SetFontWeight String
     | SetTextboxSize (Result Browser.Dom.Error Browser.Dom.Element)
     | SetFont String
     | SetTextOpacity String
@@ -173,8 +173,8 @@ update msg model =
             { model | fontSize = FontSize.toPx << parseInt <| newValue }
                 |> withCmd getTextboxDimension
 
-        SetFontWeight newWeight ->
-            { model | fontWeight = newWeight }
+        SetFontWeight value ->
+            { model | fontWeight = FontWeight.fromString value |> Maybe.withDefault model.fontWeight }
                 |> noCmd
 
         SetSvgSize newValue ->
@@ -365,16 +365,12 @@ vTextFields model =
             , H.select [ HA.id "text-font-family", Style.dropdown, HA.class "select", HE.onInput SetFont ]
                 (vFontOptions model.availableFonts model.fontFamily)
             ]
-        , SB.fieldSet "Font weight"
-            [ SB.optionList
-                { name = "font-weight"
-                , options =
-                    [ SB.option FontWeight.normal "Normal"
-                    , SB.option FontWeight.bold "Bold"
-                    ]
-                , selected = model.fontWeight
-                , onSelect = SetFontWeight
-                }
+        , HF.field
+            [ H.label [ HA.for "text-font-weight", Style.label ] [ H.text "Weight" ]
+            , H.select [ HA.id "text-font-weight", Style.dropdown, HA.class "select", HE.onInput SetFontWeight ]
+                [ H.option [ HA.value "normal", HA.selected (model.fontWeight == FontWeight.normal) ] [ H.text "Normal" ]
+                , H.option [ HA.value "bold", HA.selected (model.fontWeight == FontWeight.bold) ] [ H.text "Bold" ]
+                ]
             ]
         , ColorPicker.colorPicker
             { id = "text-color"

@@ -1,4 +1,6 @@
-module Data.FontWeight exposing (FontWeight, bold, isBold, normal, toString)
+module Data.FontWeight exposing (FontWeight, bold, fromString, isBold, normal, toString)
+
+import Svg.Attributes exposing (fontWeight)
 
 
 type FontWeight
@@ -29,3 +31,16 @@ toString fontWeight =
 isBold : FontWeight -> Bool
 isBold weight =
     weight == Bold
+
+
+fromString : String -> Maybe FontWeight
+fromString fontWeight =
+    case fontWeight of
+        "normal" ->
+            Just Normal
+
+        "bold" ->
+            Just Bold
+
+        _ ->
+            Nothing
