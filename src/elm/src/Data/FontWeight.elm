@@ -1,7 +1,5 @@
 module Data.FontWeight exposing (FontWeight, bold, fromString, isBold, normal, toString)
 
-import Svg.Attributes exposing (fontWeight)
-
 
 type FontWeight
     = Normal

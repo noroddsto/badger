@@ -1,15 +1,10 @@
-module Helper.SegmentButton exposing (fieldSet, option, optionIcon, optionList)
+module Helper.SegmentButton exposing (fieldSet, optionIcon, optionList)
 
 import Helper.Style as Style
 import Html as H
 import Html.Attributes as HA
 import Html.Events as HE
 import Icon.UI as UI
-
-
-option : a -> String -> Option a msg
-option item label =
-    Option item label Nothing
 
 
 optionIcon : a -> String -> UI.Icon msg -> Option a msg

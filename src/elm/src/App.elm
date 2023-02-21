@@ -3,6 +3,7 @@ module App exposing (..)
 import Browser
 import Browser.Dom
 import Component.Modal as Modal
+import Data.Canvas as Canvas
 import Data.Color as Color
 import Data.Font as Font
 import Data.FontSize as FontSize
@@ -13,7 +14,6 @@ import Helper.Contrast as Contrast
 import Helper.Form as HF
 import Helper.SegmentButton as SB
 import Helper.Style as Style
-import Helper.Svg
 import Helper.SvgInput as IconInput
 import Helper.Update exposing (noCmd, parseInt, withCmd)
 import Html as H
@@ -21,11 +21,8 @@ import Html.Attributes as HA
 import Html.Events as HE
 import Icon.UI as UI
 import Ports
-import Svg
-import Svg.Attributes as SA
 import SvgParser
 import Task
-import VirtualDom
 
 
 
@@ -53,6 +50,7 @@ init () =
       , height = 100
       , backgroundColor = ColorPicker.init Color.white
       , layoutDirection = TopToBottom
+      , verticalAlign = Vcenter
       , spaceBetween = 0
       , fontSize = FontSize.toPx 24
       , fontFamily = Font.default
@@ -83,11 +81,16 @@ type LayoutDirection
     | RightToLeft
 
 
+type VerticalAlign
+    = Vcenter
+
+
 type alias Model =
     { width : Int
     , height : Int
     , backgroundColor : ColorPicker.ColorInput
     , layoutDirection : LayoutDirection
+    , verticalAlign : VerticalAlign
     , spaceBetween : Int
     , fontFamily : Font.Font
     , fontSize : FontSize.FontSize
@@ -326,7 +329,7 @@ vSettingsForm model =
         , HA.class
             "fixed right-0 top-0 bottom-0 p-4 bg-white overflow-x-auto drop-shadow-[-2px_-2px_5px_rgba(0,0,0,0.15)] lg:relative lg:min-w-[380px] lg:inset-auto lg:flex-shrink-0 lg:block ease-in-out transition-all duration-300 lg:transform-none"
         ]
-        [ H.h2 [ Style.h2, HA.class "sr-only" ] [ H.text "Settings" ]
+        [ H.h2 [ Style.h2 ] [ H.text "Settings" ]
         , H.button
             [ HE.onClick ToggleMenu
             , HA.class "absolute right-6 top-6 lg:hidden"
@@ -344,8 +347,8 @@ vSettingsForm model =
 
 vTextFields : Model -> H.Html Msg
 vTextFields model =
-    H.section [ HA.class "bg-white p-4 mb-6 " ]
-        [ H.h3 [ Style.h3 ] [ H.text "Text" ]
+    H.section [ HA.class "bg-white py-4 mb-6 " ]
+        [ H.h3 [ Style.h3, HA.class "sr-only" ] [ H.text "Text" ]
         , HF.inputField
             { id = "text-main-text"
             , label = "Text"
@@ -424,10 +427,10 @@ vFontOptions fontList selectedFont =
 
 vIconFields : Model -> H.Html Msg
 vIconFields model =
-    H.section [ HA.class "bg-white p-4" ]
+    H.section [ HA.class "bg-white py-4" ]
         (case model.confirmedSvg of
             Nothing ->
-                [ H.h3 [ Style.h3 ] [ H.text "Icon" ]
+                [ H.h3 [ Style.h3, HA.class "sr-only" ] [ H.text "Icon" ]
                 , H.button
                     [ HA.class "flex gap-3 items-center fill-blue-700 text-blue-700 hover:text-blue-800 hover:fill-blue-800 hover:underline"
                     , HE.onClick AddSvg
@@ -436,7 +439,7 @@ vIconFields model =
                 ]
 
             Just _ ->
-                [ H.h3 [ Style.h3 ] [ H.text "Icon" ]
+                [ H.h3 [ Style.h3, HA.class "sr-only" ] [ H.text "Icon" ]
                 , SB.fieldSet "Layout direction"
                     [ SB.optionList
                         { name = "layout_direction"
@@ -510,8 +513,8 @@ vIconFields model =
 
 vCanvasFields : Model -> H.Html Msg
 vCanvasFields model =
-    H.section [ HA.class "p-4 bg-white mb-6" ]
-        [ H.h3 [ Style.h3 ] [ H.text "Canvas" ]
+    H.section [ HA.class "py-4 bg-white mb-6" ]
+        [ H.h3 [ Style.h3, HA.class "sr-only" ] [ H.text "Canvas" ]
         , HF.field
             [ HF.labelFor "canvas-width" "Width (px)"
             , H.input
@@ -579,263 +582,89 @@ vIconInputModal mbInput =
 
 rSvg : Model -> H.Html msg
 rSvg model =
-    case model.confirmedSvg of
-        Just svgElement ->
-            rSvgTextAndIcon
-                { width = model.width
-                , height = model.height
-                , backgroundColor = model.backgroundColor |> ColorPicker.getColor
-                , layoutDirection = model.layoutDirection
-                , spaceBetween = model.spaceBetween
-                , fontFamily = model.fontFamily
-                , fontSize = model.fontSize
-                , mainText = model.mainText
-                , textColor = model.textColor |> ColorPicker.getColor
-                , fontWeight = model.fontWeight
-                , size = model.size
-                , confirmedSvg = svgElement
-                , svgColor = model.svgColor |> ColorPicker.getColor
-                , textBoxSize = model.textBoxSize
-                , textOpacity = model.textOpacity
-                , iconOpacity = model.iconOpacity
-                }
-
-        Nothing ->
-            rSvgTextOnly
-                { width = model.width
-                , height = model.height
-                , backgroundColor = model.backgroundColor |> ColorPicker.getColor
-                , fontFamily = model.fontFamily
-                , fontSize = model.fontSize
-                , mainText = model.mainText
-                , textColor = model.textColor |> ColorPicker.getColor
-                , fontWeight = model.fontWeight
-                , textBoxSize = model.textBoxSize
-                , textOpacity = model.textOpacity
-                }
+    model
+        |> toCanvas
+        |> Canvas.toSvg
 
 
-type alias SvgTextAndIconConfig =
-    { width : Int
-    , height : Int
-    , backgroundColor : Color.Hex
-    , layoutDirection : LayoutDirection
-    , spaceBetween : Int
-    , fontFamily : Font.Font
-    , fontSize : FontSize.FontSize
-    , mainText : String
-    , textColor : Color.Hex
-    , fontWeight : FontWeight.FontWeight
-    , size : Percentage.Percentage
-    , confirmedSvg : SvgParser.Element
-    , svgColor : Color.Hex
-    , textBoxSize : ElementSize
-    , textOpacity : Percentage.Percentage
-    , iconOpacity : Percentage.Percentage
-    }
-
-
-rSvgTextOnly : SvgTextOnlyConfig -> H.Html msg
-rSvgTextOnly model =
-    let
-        textPosition =
-            { x = toFloat model.width / 2
-            , y = toFloat model.height / 2
-            , dy = Font.dyCenter model.textBoxSize.height model.fontFamily
-            , textAnchor = "middle"
-            }
-    in
-    rSvgBody model.width
-        model.height
-        model.backgroundColor
-        model.mainText
-        [ rText model.mainText model.fontFamily model.fontWeight model.fontSize model.textColor model.textOpacity textPosition
-        ]
-
-
-rSvgTextAndIcon : SvgTextAndIconConfig -> H.Html msg
-rSvgTextAndIcon model =
+toCanvas : Model -> Canvas.Canvas msg
+toCanvas model =
     let
         canvas =
-            { width = toFloat model.width, height = toFloat model.height }
+            { height = toFloat model.height, width = toFloat model.width }
+                |> Canvas.newCanvas (toFloat model.spaceBetween)
 
-        iconOutput =
-            IconInput.toSvg model.confirmedSvg
-
-        iconSize =
-            calculateIconSize canvas model.size iconOutput.aspectRatio
-
-        { iconPosition, textPosition } =
-            calculateTextAndIconPositions model.layoutDirection model.fontFamily canvas iconSize model.textBoxSize model.spaceBetween
+        ( layoutDirection, elements ) =
+            []
+                |> addTextElement model
+                |> addIconElement model
+                |> sortCanvasElements model.layoutDirection
     in
-    rSvgBody model.width
-        model.height
-        model.backgroundColor
-        model.mainText
-        [ Svg.defs []
-            [ iconOutput.svg
-            ]
-        , Svg.use
-            [ VirtualDom.attribute "href" "#icon"
-            , VirtualDom.attribute "xlink:href" "#icon"
-            , SA.width (String.fromFloat iconSize.width)
-            , SA.height (String.fromFloat iconSize.height)
-            , SA.x (String.fromFloat iconPosition.x)
-            , SA.y (String.fromFloat iconPosition.y)
-            , SA.fill (model.svgColor |> Color.toHexString)
-            , SA.opacity (String.fromFloat <| Percentage.toDecimals model.iconOpacity)
-            ]
-            []
-        , rText model.mainText model.fontFamily model.fontWeight model.fontSize model.textColor model.textOpacity textPosition
-        ]
+    elements
+        |> List.foldl
+            (\element cv ->
+                Canvas.addElement element cv
+            )
+            (canvas (ColorPicker.getColor model.backgroundColor) layoutDirection)
+        |> Canvas.alignItems Canvas.alignCenter
+        |> Canvas.alignContentHorizontal Canvas.alignCenter
+        |> Canvas.alignContentVertical Canvas.alignCenter
 
 
-type alias SvgTextOnlyConfig =
-    { width : Int
-    , height : Int
-    , backgroundColor : Color.Hex
-    , fontFamily : Font.Font
-    , fontSize : FontSize.FontSize
-    , mainText : String
-    , textColor : Color.Hex
-    , fontWeight : FontWeight.FontWeight
-    , textBoxSize : ElementSize
-    , textOpacity : Percentage.Percentage
-    }
+addTextElement : Model -> List (Canvas.Element msg) -> List (Canvas.Element msg)
+addTextElement model elements =
+    Canvas.textElement
+        { fill = ColorPicker.getColor model.textColor
+        , font = model.fontFamily
+        , opacity = model.textOpacity
+        , value = model.mainText
+        , weight = model.fontWeight
+        , fontSize = model.fontSize
+        }
+        model.textBoxSize
+        :: elements
 
 
-rSvgBody : Int -> Int -> Color.Hex -> String -> List (Svg.Svg msg) -> Svg.Svg msg
-rSvgBody width height bgColor text content =
-    Svg.svg
-        [ SA.width (String.fromInt width)
-        , SA.height (String.fromInt height)
-        , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
-        , VirtualDom.attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
-        , Helper.Svg.viewBox width height
-        , SA.id "generated-svg"
-        , VirtualDom.attribute "aria-label" text
-        , SA.version "1.1"
-        ]
-        (Svg.rect
-            [ SA.width (String.fromInt width)
-            , SA.height (String.fromInt height)
-            , SA.fill (Color.toHexString bgColor)
-            ]
-            []
-            :: content
-        )
+addIconElement : Model -> List (Canvas.Element msg) -> List (Canvas.Element msg)
+addIconElement model elements =
+    case model.confirmedSvg of
+        Nothing ->
+            elements
 
-
-rText : String -> Font.Font -> FontWeight.FontWeight -> FontSize.FontSize -> Color.Hex -> Percentage.Percentage -> TextPosition -> Svg.Svg msg
-rText value font fontWeight fontSize color opacity textPosition =
-    Svg.text_
-        [ SA.fontWeight (FontWeight.toString fontWeight)
-        , SA.id "svg-text"
-        , SA.textAnchor textPosition.textAnchor
-        , SA.fontSize (FontSize.toValueString fontSize)
-        , SA.x (String.fromFloat textPosition.x)
-        , SA.y (String.fromFloat textPosition.y)
-        , SA.dy (String.fromFloat textPosition.dy)
-        , SA.fill (Color.toHexString color)
-        , SA.fontFamily (font |> Font.getName)
-        , SA.fillOpacity (String.fromFloat <| Percentage.toDecimals opacity)
-        ]
-        [ Svg.text value ]
-
-
-type alias IconPosition =
-    { x : Float, y : Float }
-
-
-type alias TextPosition =
-    { x : Float, y : Float, dy : Float, textAnchor : String }
-
-
-calculateTextAndIconPositions : LayoutDirection -> Font.Font -> ElementSize -> ElementSize -> ElementSize -> Int -> { iconPosition : IconPosition, textPosition : TextPosition }
-calculateTextAndIconPositions layoutDirection font canvas icon text spacing =
-    case layoutDirection of
-        TopToBottom ->
+        Just iconElement ->
             let
-                totalHeight =
-                    icon.height + text.height + toFloat spacing
+                { svg, aspectRatio } =
+                    IconInput.toSvg iconElement
 
-                iconY =
-                    (canvas.height - totalHeight) / 2
-
-                iconX =
-                    (canvas.width - icon.width) / 2
-
-                textY =
-                    iconY + icon.height + toFloat spacing
-
-                textX =
-                    canvas.width / 2
+                iconSize =
+                    { width =
+                        (toFloat model.height * Percentage.toDecimals model.size)
+                            * aspectRatio
+                    , height =
+                        toFloat model.height * Percentage.toDecimals model.size
+                    }
             in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyHanging text.height font, textAnchor = "middle" } }
+            Canvas.iconElement
+                { fill = ColorPicker.getColor model.textColor
+                , opacity = model.iconOpacity
+                , domId = "#icon"
+                , svg = svg
+                }
+                iconSize
+                :: elements
 
+
+sortCanvasElements : LayoutDirection -> List (Canvas.Element msg) -> ( Canvas.Direction, List (Canvas.Element msg) )
+sortCanvasElements direction elements =
+    case direction of
         BottomToTop ->
-            let
-                totalHeight =
-                    icon.height + text.height + toFloat spacing
-
-                textY =
-                    (canvas.height - totalHeight) / 2
-
-                textX =
-                    canvas.width / 2
-
-                iconX =
-                    (canvas.width - icon.width) / 2
-
-                iconY =
-                    textY + text.height + toFloat spacing
-            in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyHanging text.height font, textAnchor = "middle" } }
-
-        LeftToRight ->
-            let
-                totalWidth =
-                    icon.width + text.width + toFloat spacing
-
-                iconX =
-                    (canvas.width - totalWidth) / 2
-
-                iconY =
-                    (canvas.height - icon.height) / 2
-
-                textX =
-                    (iconX + toFloat spacing) + icon.width
-
-                textY =
-                    canvas.height / 2
-            in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyCenter text.height font, textAnchor = "start" } }
+            ( Canvas.layoutVertical, List.reverse elements )
 
         RightToLeft ->
-            let
-                totalWidth =
-                    icon.width + text.width + toFloat spacing
+            ( Canvas.layoutHorizontal, List.reverse elements )
 
-                textX =
-                    ((canvas.width - totalWidth) / 2) + text.width
+        TopToBottom ->
+            ( Canvas.layoutVertical, elements )
 
-                iconX =
-                    textX + toFloat spacing
-
-                iconY =
-                    (canvas.height - icon.height) / 2
-
-                textY =
-                    canvas.height / 2
-            in
-            { iconPosition = { x = iconX, y = iconY }, textPosition = { x = textX, y = textY, dy = Font.dyCenter text.height font, textAnchor = "end" } }
-
-
-calculateIconSize : ElementSize -> Percentage.Percentage -> Float -> ElementSize
-calculateIconSize canvas iconSizePct aspectRatio =
-    { width =
-        (canvas.height * (toFloat (Percentage.toInt iconSizePct) / 100.0))
-            * aspectRatio
-    , height =
-        canvas.height * (toFloat (Percentage.toInt iconSizePct) / 100.0)
-    }
+        LeftToRight ->
+            ( Canvas.layoutHorizontal, elements )

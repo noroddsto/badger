@@ -1,4 +1,4 @@
-module Data.Font exposing (Font, FontData, FontList, FontMetric, availableFonts, default, dyCenter, dyHanging, getData, getFont, getMetrics, getName)
+module Data.Font exposing (Font, FontData, FontList, availableFonts, default, getData, getFont, getName, heightInsideEmBox)
 
 
 type Font
@@ -54,20 +54,6 @@ getName (Font _ name _) =
     name
 
 
-type alias FontMetric =
-    { emSize : Float }
-
-
-getMetrics : Font -> FontMetric
-getMetrics (Font _ _ emSize) =
-    FontMetric emSize
-
-
-dyHanging : Float -> Font -> Float
-dyHanging emBoxHeight (Font _ _ emSize) =
-    emSize * emBoxHeight
-
-
-dyCenter : Float -> Font -> Float
-dyCenter emBoxHeight (Font _ _ emSize) =
-    (emSize * emBoxHeight) / 2
+heightInsideEmBox : Font -> Float
+heightInsideEmBox (Font _ _ emSize) =
+    emSize
