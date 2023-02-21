@@ -10,19 +10,29 @@ type Hex
     = Hex String
 
 
+{-| Convert HEX color to string.
+
+    toHexString (Hex # FFFFFF) == "#FFFFFF"
+
+-}
 toHexString : Hex -> String
 toHexString (Hex hex) =
     hex
 
 
+{-| Calculates the actual RGB color when a foreground color with opacity is layered on top of a colored background.
+
+    transparentColorToRgb (Rgb 181 26 0) (Rgb 255 255 255) (Percentage 50) == Rgb 218 141 128
+
+-}
 transparentColorToRgb : Rgb -> Rgb -> Percentage.Percentage -> Rgb
 transparentColorToRgb background foreground opacity =
     let
         (Rgb bR bG bB) =
-            background
+            background |> Debug.log "BG"
 
         (Rgb fR fG fB) =
-            foreground
+            foreground |> Debug.log "FG"
 
         alpha =
             Percentage.toDecimals opacity
@@ -33,9 +43,18 @@ transparentColorToRgb background foreground opacity =
             , b = (((1 - alpha) * toFloat bB) + (alpha * toFloat fB)) |> round
             }
     in
-    Rgb target.r target.g target.b
+    Rgb target.r target.g target.b |> Debug.log "Res"
 
 
+{-| Parse string into Hex
+
+    fromString "#FFFFFF" == Ok (Hex "#FFFFFF")
+
+    fromString "#FFF" == Ok (Hex "#FFFFFF")
+
+    fromString "nocolor" == Err "Invalid format"
+
+-}
 fromString : String -> Result String Hex
 fromString hexStr =
     let
@@ -110,6 +129,11 @@ type Rgb
     = Rgb Int Int Int
 
 
+{-| Convert Hex to Rgb
+
+    toRgb (Hex # FFFFFF) == RGB 255 255 255
+
+-}
 toRgb : Hex -> Maybe Rgb
 toRgb (Hex hexCode) =
     hexCode
@@ -153,6 +177,8 @@ luminance (Rgb r g b) =
         |> List.sum
 
 
+{-| Calculate the contrast ratio between two RGB colors.
+-}
 contrast : Rgb -> Rgb -> Float
 contrast color1 color2 =
     let
