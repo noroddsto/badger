@@ -202,7 +202,7 @@ textElement : TextPresentation -> Size -> Element msg
 textElement attrs textBoxSize =
     let
         fontOffsetY =
-            Font.heightInsideEmBox attrs.font * textBoxSize.height
+            Font.getCapHeight attrs.font * textBoxSize.height
     in
     Text { textBoxSize | height = fontOffsetY } { x = 0, y = fontOffsetY } attrs
 

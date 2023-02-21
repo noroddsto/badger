@@ -1,4 +1,6 @@
-module Data.Font exposing (Font, FontData, FontList, availableFonts, default, getData, getFont, getName, heightInsideEmBox)
+module Data.Font exposing (Font, FontData, FontList, availableFonts, default, getCapHeight, getData, getFont, getName)
+
+import Svg.Attributes exposing (capHeight)
 
 
 type Font
@@ -6,13 +8,15 @@ type Font
 
 
 type alias FontData =
-    { key : String, name : String, emSize : Float }
+    { key : String, name : String, capHeight : Float }
 
 
 type alias FontList =
     List Font
 
 
+{-| The default font
+-}
 default : Font
 default =
     Font "arial" "Arial" 0.64
@@ -39,6 +43,11 @@ getData (Font key value emSize) =
     FontData key value emSize
 
 
+{-| Gets font from fontlist by name
+
+    getFont "arial" [ Font "arial" "Arial" 0.64 ] == Font "arial" "Arial" 0.64
+
+-}
 getFont : String -> FontList -> Maybe Font
 getFont searchKey fontList =
     fontList
@@ -49,11 +58,21 @@ getFont searchKey fontList =
         |> List.head
 
 
+{-| Get name from font
+
+    getName (Font "arial" "Arial" 0.64) == "Arial"
+
+-}
 getName : Font -> String
 getName (Font _ name _) =
     name
 
 
-heightInsideEmBox : Font -> Float
-heightInsideEmBox (Font _ _ emSize) =
-    emSize
+{-| Get cap height from font.
+
+    getName (Font "arial" "Arial" 0.64) == 0.64
+
+-}
+getCapHeight : Font -> Float
+getCapHeight (Font _ _ capHeight) =
+    capHeight
