@@ -216,7 +216,7 @@ alignItems : Align -> Canvas msg -> Canvas msg
 alignItems alignment canvas =
     let
         content =
-            getContentSize canvas |> Debug.log "Align items"
+            getContentSize canvas
     in
     case canvas.direction of
         Vertical ->
