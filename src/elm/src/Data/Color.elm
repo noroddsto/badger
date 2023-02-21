@@ -29,13 +29,13 @@ transparentColorToRgb : Rgb -> Rgb -> Percentage.Percentage -> Rgb
 transparentColorToRgb background foreground opacity =
     let
         (Rgb bR bG bB) =
-            background |> Debug.log "BG"
+            background
 
         (Rgb fR fG fB) =
-            foreground |> Debug.log "FG"
+            foreground
 
         alpha =
-            Percentage.toDecimals opacity
+            Percentage.toFloat_ opacity
 
         target =
             { r = (((1 - alpha) * toFloat bR) + (alpha * toFloat fR)) |> round

@@ -638,10 +638,10 @@ addIconElement model elements =
 
                 iconSize =
                     { width =
-                        (toFloat model.height * Percentage.toDecimals model.size)
+                        (toFloat model.height * Percentage.toFloat_ model.size)
                             * aspectRatio
                     , height =
-                        toFloat model.height * Percentage.toDecimals model.size
+                        toFloat model.height * Percentage.toFloat_ model.size
                     }
             in
             Canvas.iconElement

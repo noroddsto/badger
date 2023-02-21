@@ -422,7 +422,7 @@ renderElement element =
                 , SA.x (String.fromFloat position.x)
                 , SA.y (String.fromFloat position.y)
                 , SA.fill (attrs.fill |> Color.toHexString)
-                , SA.opacity (String.fromFloat <| Percentage.toDecimals attrs.opacity)
+                , SA.opacity (String.fromFloat <| Percentage.toFloat_ attrs.opacity)
                 ]
                 []
 
@@ -435,7 +435,7 @@ renderElement element =
                 , SA.y (String.fromFloat position.y)
                 , SA.fill (Color.toHexString attrs.fill)
                 , SA.fontFamily (Font.getName attrs.font)
-                , SA.fillOpacity (attrs.opacity |> Percentage.toDecimals |> String.fromFloat)
+                , SA.fillOpacity (attrs.opacity |> Percentage.toFloat_ |> String.fromFloat)
                 ]
                 [ Svg.text attrs.value ]
 

@@ -1,4 +1,4 @@
-module Data.Percentage exposing (Percentage, fromInt, toDecimals, toString, toValueString)
+module Data.Percentage exposing (Percentage, fromInt, toFloat_, toString, toValueString)
 
 
 type Percentage
@@ -27,6 +27,6 @@ toString (Pct val) =
     String.fromInt val ++ " %"
 
 
-toDecimals : Percentage -> Float
-toDecimals (Pct size) =
+toFloat_ : Percentage -> Float
+toFloat_ (Pct size) =
     toFloat size / 100
