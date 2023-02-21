@@ -43,7 +43,7 @@ transparentColorToRgb background foreground opacity =
             , b = (((1 - alpha) * toFloat bB) + (alpha * toFloat fB)) |> round
             }
     in
-    Rgb target.r target.g target.b |> Debug.log "Res"
+    Rgb target.r target.g target.b
 
 
 {-| Parse string into Hex
