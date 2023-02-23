@@ -21,6 +21,9 @@ import Html.Attributes as HA
 import Html.Events as HE
 import Icon.UI as UI
 import Ports
+import Random
+import Random.Char
+import Random.String
 import SvgParser
 import Task
 
@@ -61,8 +64,14 @@ init () =
       , textOpacity = Percentage.fromInt 100
       , iconOpacity = Percentage.fromInt 100
       , menuToggled = False
+      , iconDomId = "icon"
+      , svgDomId = "generated-svg"
       }
-    , getTextboxDimension
+    , Cmd.batch
+        [ getTextboxDimension
+        , Random.String.string 10 Random.Char.english |> Random.generate SetIconDomId
+        , Random.String.string 10 Random.Char.english |> Random.generate SetSvgDomId
+        ]
     )
 
 
@@ -106,6 +115,8 @@ type alias Model =
     , textOpacity : Percentage.Percentage
     , iconOpacity : Percentage.Percentage
     , menuToggled : Bool
+    , iconDomId : String
+    , svgDomId : String
     }
 
 
@@ -139,6 +150,8 @@ type Msg
     | SetIconOpacity String
     | DownloadSvg
     | ToggleMenu
+    | SetIconDomId String
+    | SetSvgDomId String
 
 
 subscriptions : Model -> Sub Msg
@@ -264,7 +277,7 @@ update msg model =
                 |> noCmd
 
         DownloadSvg ->
-            ( model, Ports.downloadSvg { domId = "generated-svg", fileName = "Result" } )
+            ( model, Ports.downloadSvg { domId = model.svgDomId, fileName = "Result" } )
 
         ToggleMenu ->
             ( { model | menuToggled = not model.menuToggled }, Cmd.none )
@@ -277,6 +290,12 @@ update msg model =
 
         SetTextColor color ->
             ( { model | textColor = color }, Cmd.none )
+
+        SetIconDomId newId ->
+            ( { model | iconDomId = "icon-" ++ newId }, Cmd.none )
+
+        SetSvgDomId newId ->
+            ( { model | svgDomId = "svg-" ++ newId }, Cmd.none )
 
 
 getTextboxDimension : Cmd Msg
@@ -592,7 +611,7 @@ toCanvas model =
     let
         canvas =
             { height = toFloat model.height, width = toFloat model.width }
-                |> Canvas.newCanvas (toFloat model.spaceBetween)
+                |> Canvas.newCanvas model.svgDomId (toFloat model.spaceBetween)
 
         ( layoutDirection, elements ) =
             []
@@ -634,7 +653,7 @@ addIconElement model elements =
         Just iconElement ->
             let
                 { svg, aspectRatio } =
-                    IconInput.toSvg iconElement
+                    IconInput.toSvg iconElement model.iconDomId
 
                 iconSize =
                     { width =
@@ -647,7 +666,7 @@ addIconElement model elements =
             Canvas.iconElement
                 { fill = ColorPicker.getColor model.textColor
                 , opacity = model.iconOpacity
-                , domId = "#icon"
+                , domId = "#" ++ model.iconDomId
                 , svg = svg
                 }
                 iconSize

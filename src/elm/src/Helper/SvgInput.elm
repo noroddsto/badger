@@ -79,8 +79,8 @@ type alias ParsedSvg msg =
     }
 
 
-toSvg : SvgParser.Element -> ParsedSvg msg
-toSvg { name, attributes, children } =
+toSvg : SvgParser.Element -> String -> ParsedSvg msg
+toSvg { name, attributes, children } domId =
     let
         attrs =
             attributes
@@ -92,7 +92,7 @@ toSvg { name, attributes, children } =
         attrs2 =
             attrs |> List.map SvgParser.toAttribute
     in
-    { svg = Svg.node name (SA.id "icon" :: attrs2) (children |> List.map SvgParser.nodeToSvg), aspectRatio = aspectRatio }
+    { svg = Svg.node name (SA.id domId :: attrs2) (children |> List.map SvgParser.nodeToSvg), aspectRatio = aspectRatio }
 
 
 getAspectRatio : List SvgParser.SvgAttribute -> Float

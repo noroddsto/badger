@@ -100,6 +100,7 @@ type alias TextPresentation =
 
 type alias Canvas msg =
     { elements : List (Element msg)
+    , svgDomId : String
     , spacing : Float
     , canvas : Size
     , backgroundColor : Color.Hex
@@ -107,7 +108,7 @@ type alias Canvas msg =
     }
 
 
-newCanvas : Float -> Size -> Color.Hex -> Direction -> Canvas msg
+newCanvas : String -> Float -> Size -> Color.Hex -> Direction -> Canvas msg
 newCanvas =
     Canvas []
 
@@ -384,7 +385,7 @@ toSvg canvas =
         , VirtualDom.attribute "xmlns" "http://www.w3.org/2000/svg"
         , VirtualDom.attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
         , Helper.Svg.viewBox width height
-        , SA.id "generated-svg"
+        , SA.id canvas.svgDomId
         , VirtualDom.attribute "aria-label" "User generated svg image"
         , SA.version "1.1"
         ]
