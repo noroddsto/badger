@@ -369,17 +369,6 @@ alignContentHorizontal alignment canvas =
                     )
 
 
-
-{-
-   newCanvas Vertical 10.0
-   |> addIcon
-   |> addText
-   |> alignItems Center
-   |> alignContentHorizontal Center
-   |> alignContentVertical Center
--}
-
-
 toSvg : Canvas msg -> Svg.Svg msg
 toSvg canvas =
     let
