@@ -91,10 +91,6 @@ type LayoutDirection
     | RightToLeft
 
 
-type VerticalAlign
-    = Vcenter
-
-
 type alias Model =
     { width : Int
     , height : Int
