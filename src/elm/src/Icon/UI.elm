@@ -1,6 +1,12 @@
 module Icon.UI exposing
     ( Icon
     , addIcon
+    , alignHorizontalCenter
+    , alignHorizontalLeft
+    , alignHorizontalRight
+    , alignVerticalBottom
+    , alignVerticalCenter
+    , alignVerticalTop
     , arrowDown
     , arrowLeft
     , arrowRight
@@ -126,6 +132,66 @@ download size =
     icon size
         [ Svg.path
             [ SA.d "M10.6 41.35q-1.65 0-2.825-1.175Q6.6 39 6.6 37.35v-8.4h4v8.4h26.8v-8.4h3.95v8.4q0 1.65-1.175 2.825Q39 41.35 37.4 41.35Zm13.4-9.6L13.35 21.1l2.85-2.8 5.8 5.85V6h4v18.15l5.8-5.85 2.85 2.8Z"
+            ]
+            []
+        ]
+
+
+alignHorizontalCenter : Int -> Svg.Svg msg
+alignHorizontalCenter size =
+    icon size
+        [ Svg.path
+            [ SA.d "M22.1 44.85V34H11.15v-5.9H22.1v-8.25H5.15v-5.9H22.1V3.15h3.85v10.8h16.9v5.9h-16.9v8.25h10.9V34h-10.9v10.85Z"
+            ]
+            []
+        ]
+
+
+alignHorizontalRight : Int -> Svg.Svg msg
+alignHorizontalRight size =
+    icon size
+        [ Svg.path
+            [ SA.d "M41 44.85V3.15h3.85v41.7ZM15.15 34v-5.9H36.5V34Zm-12-14.15v-5.9H36.5v5.9Z"
+            ]
+            []
+        ]
+
+
+alignHorizontalLeft : Int -> Svg.Svg msg
+alignHorizontalLeft size =
+    icon size
+        [ Svg.path
+            [ SA.d "M3.15 44.85V3.15H7v41.7ZM11.55 34v-5.9h21.3V34Zm0-14.15v-5.9h33.3v5.9Z"
+            ]
+            []
+        ]
+
+
+alignVerticalCenter : Int -> Svg.Svg msg
+alignVerticalCenter size =
+    icon size
+        [ Svg.path
+            [ SA.d "M14 42.85V25.9H3.15v-3.85H14V5.15h5.9v16.9h8.25v-10.9h5.9v10.9h10.8v3.85h-10.8v10.95h-5.9V25.9H19.9v16.95Z"
+            ]
+            []
+        ]
+
+
+alignVerticalBottom : Int -> Svg.Svg msg
+alignVerticalBottom size =
+    icon size
+        [ Svg.path
+            [ SA.d "M3.15 44.85V41h41.7v3.85ZM14 36.45V3.15h5.9v33.3Zm14.15 0v-21.3h5.9v21.3Z"
+            ]
+            []
+        ]
+
+
+alignVerticalTop : Int -> Svg.Svg msg
+alignVerticalTop size =
+    icon size
+        [ Svg.path
+            [ SA.d "M14 44.85V11.5h5.9v33.35Zm14.15-12V11.5h5.9v21.35ZM3.15 7V3.15h41.7V7Z"
             ]
             []
         ]

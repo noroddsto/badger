@@ -53,7 +53,6 @@ init () =
       , height = 100
       , backgroundColor = ColorPicker.init Color.white
       , layoutDirection = TopToBottom
-      , verticalAlign = Vcenter
       , spaceBetween = 0
       , fontSize = FontSize.toPx 24
       , fontFamily = Font.default
@@ -66,6 +65,8 @@ init () =
       , menuToggled = False
       , iconDomId = "icon"
       , svgDomId = "generated-svg"
+      , alignHorizontal = Canvas.alignCenter
+      , alignVertical = Canvas.alignCenter
       }
     , Cmd.batch
         [ getTextboxDimension
@@ -99,7 +100,6 @@ type alias Model =
     , height : Int
     , backgroundColor : ColorPicker.ColorInput
     , layoutDirection : LayoutDirection
-    , verticalAlign : VerticalAlign
     , spaceBetween : Int
     , fontFamily : Font.Font
     , fontSize : FontSize.FontSize
@@ -117,6 +117,8 @@ type alias Model =
     , menuToggled : Bool
     , iconDomId : String
     , svgDomId : String
+    , alignHorizontal : Canvas.Align
+    , alignVertical : Canvas.Align
     }
 
 
@@ -152,6 +154,8 @@ type Msg
     | ToggleMenu
     | SetIconDomId String
     | SetSvgDomId String
+    | SetVerticalAlign Canvas.Align
+    | SetHorizontalAlign Canvas.Align
 
 
 subscriptions : Model -> Sub Msg
@@ -296,6 +300,12 @@ update msg model =
 
         SetSvgDomId newId ->
             ( { model | svgDomId = "svg-" ++ newId }, Cmd.none )
+
+        SetHorizontalAlign align ->
+            ( { model | alignHorizontal = align }, Cmd.none )
+
+        SetVerticalAlign align ->
+            ( { model | alignVertical = align }, Cmd.none )
 
 
 getTextboxDimension : Cmd Msg
@@ -562,6 +572,30 @@ vCanvasFields model =
             , onChange = SetBackgroundColor
             , value = model.backgroundColor
             }
+        , SB.fieldSet "Vertical align"
+            [ SB.optionList
+                { name = "vertical_align"
+                , options =
+                    [ SB.optionIcon Canvas.alignStart "Top" UI.alignVerticalTop
+                    , SB.optionIcon Canvas.alignCenter "Center" UI.alignVerticalCenter
+                    , SB.optionIcon Canvas.alignEnd "Bottom" UI.alignVerticalBottom
+                    ]
+                , selected = model.alignVertical
+                , onSelect = SetVerticalAlign
+                }
+            ]
+        , SB.fieldSet "Horizontal align"
+            [ SB.optionList
+                { name = "horizontal_align"
+                , options =
+                    [ SB.optionIcon Canvas.alignStart "Left" UI.alignHorizontalLeft
+                    , SB.optionIcon Canvas.alignCenter "Center" UI.alignHorizontalCenter
+                    , SB.optionIcon Canvas.alignEnd "Right" UI.alignHorizontalRight
+                    ]
+                , selected = model.alignHorizontal
+                , onSelect = SetHorizontalAlign
+                }
+            ]
         ]
 
 
@@ -625,9 +659,9 @@ toCanvas model =
                 Canvas.addElement element cv
             )
             (canvas (ColorPicker.getColor model.backgroundColor) layoutDirection)
-        |> Canvas.alignItems Canvas.alignCenter
-        |> Canvas.alignContentHorizontal Canvas.alignCenter
-        |> Canvas.alignContentVertical Canvas.alignCenter
+        |> Canvas.alignItems model.alignHorizontal model.alignVertical
+        |> Canvas.alignContentHorizontal model.alignHorizontal
+        |> Canvas.alignContentVertical model.alignVertical
 
 
 addTextElement : Model -> List (Canvas.Element msg) -> List (Canvas.Element msg)

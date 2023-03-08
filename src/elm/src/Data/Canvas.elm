@@ -1,5 +1,6 @@
 module Data.Canvas exposing
-    ( Canvas
+    ( Align
+    , Canvas
     , Direction
     , Element
     , IconPresentation
@@ -213,52 +214,44 @@ iconElement attrs iconSize =
     Icon iconSize { x = 0, y = 0 } attrs
 
 
-alignItems : Align -> Canvas msg -> Canvas msg
-alignItems alignment canvas =
+alignItems : Align -> Align -> Canvas msg -> Canvas msg
+alignItems alignHorizontal alignVertical canvas =
     let
         content =
             getContentSize canvas
     in
     case canvas.direction of
         Vertical ->
-            case alignment of
+            case alignHorizontal of
                 Start ->
                     canvas
+                        |> updateElementsPosition
+                            (\_ pos ->
+                                { pos
+                                    | x = 0
+                                }
+                            )
 
                 Center ->
-                    { canvas
-                        | elements =
-                            canvas.elements
-                                |> List.map
-                                    (\element ->
-                                        element
-                                            |> updatePosition
-                                                (\size pos ->
-                                                    { pos
-                                                        | x = pos.x + (content.width / 2) - (size.width / 2)
-                                                    }
-                                                )
-                                    )
-                    }
+                    canvas
+                        |> updateElementsPosition
+                            (\size pos ->
+                                { pos
+                                    | x = pos.x + (content.width / 2) - (size.width / 2)
+                                }
+                            )
 
                 End ->
-                    { canvas
-                        | elements =
-                            canvas.elements
-                                |> List.map
-                                    (\element ->
-                                        element
-                                            |> updatePosition
-                                                (\size pos ->
-                                                    { pos
-                                                        | x = pos.x + content.width - size.width
-                                                    }
-                                                )
-                                    )
-                    }
+                    canvas
+                        |> updateElementsPosition
+                            (\size pos ->
+                                { pos
+                                    | x = pos.x + content.width - size.width
+                                }
+                            )
 
         Horizontal ->
-            case alignment of
+            case alignVertical of
                 Start ->
                     canvas
 

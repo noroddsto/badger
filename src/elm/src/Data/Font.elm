@@ -1,7 +1,5 @@
 module Data.Font exposing (Font, FontData, FontList, availableFonts, default, getCapHeight, getData, getFont, getName)
 
-import Svg.Attributes exposing (capHeight)
-
 
 type Font
     = Font String String Float
