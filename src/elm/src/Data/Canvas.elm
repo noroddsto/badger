@@ -103,13 +103,14 @@ type alias Canvas msg =
     { elements : List (Element msg)
     , svgDomId : String
     , spacing : Float
+    , padding : Float
     , canvas : Size
     , backgroundColor : Color.Hex
     , direction : Direction
     }
 
 
-newCanvas : String -> Float -> Size -> Color.Hex -> Direction -> Canvas msg
+newCanvas : String -> Float -> Float -> Size -> Color.Hex -> Direction -> Canvas msg
 newCanvas =
     Canvas []
 
@@ -296,13 +297,17 @@ alignContentVertical alignment canvas =
     case alignment of
         Start ->
             canvas
+                |> updateElementsPosition
+                    (\_ pos ->
+                        { pos
+                            | y = pos.y + (canvas.padding / 2)
+                        }
+                    )
 
         Center ->
             let
                 offsetY =
-                    canvas.canvas.height
-                        / 2
-                        - (content.height / 2)
+                    canvas.canvas.height / 2 - (content.height / 2)
             in
             canvas
                 |> updateElementsPosition
@@ -315,7 +320,7 @@ alignContentVertical alignment canvas =
         End ->
             let
                 offsetY =
-                    canvas.canvas.height - content.height
+                    canvas.canvas.height - content.height - (canvas.padding / 2)
             in
             canvas
                 |> updateElementsPosition
@@ -335,6 +340,12 @@ alignContentHorizontal alignment canvas =
     case alignment of
         Start ->
             canvas
+                |> updateElementsPosition
+                    (\_ pos ->
+                        { pos
+                            | x = pos.x + (canvas.padding / 2)
+                        }
+                    )
 
         Center ->
             let
@@ -352,7 +363,7 @@ alignContentHorizontal alignment canvas =
         End ->
             let
                 offsetX =
-                    canvas.canvas.width - content.width
+                    canvas.canvas.width - content.width - (canvas.padding / 2)
             in
             canvas
                 |> updateElementsPosition

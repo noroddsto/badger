@@ -67,6 +67,7 @@ init () =
       , svgDomId = "generated-svg"
       , alignHorizontal = Canvas.alignCenter
       , alignVertical = Canvas.alignCenter
+      , padding = 0
       }
     , Cmd.batch
         [ getTextboxDimension
@@ -115,6 +116,7 @@ type alias Model =
     , svgDomId : String
     , alignHorizontal : Canvas.Align
     , alignVertical : Canvas.Align
+    , padding : Int
     }
 
 
@@ -152,6 +154,7 @@ type Msg
     | SetSvgDomId String
     | SetVerticalAlign Canvas.Align
     | SetHorizontalAlign Canvas.Align
+    | SetPadding String
 
 
 subscriptions : Model -> Sub Msg
@@ -302,6 +305,10 @@ update msg model =
 
         SetVerticalAlign align ->
             ( { model | alignVertical = align }, Cmd.none )
+
+        SetPadding newValue ->
+            { model | padding = parseInt newValue }
+                |> noCmd
 
 
 getTextboxDimension : Cmd Msg
@@ -562,6 +569,17 @@ vCanvasFields model =
                 ]
                 []
             ]
+        , HF.field
+            [ HF.labelFor "canvas-padding" "Padding (px)"
+            , H.input
+                [ HA.id "canvas-padding"
+                , Style.input
+                , HA.type_ "number"
+                , HE.onInput SetPadding
+                , HA.value (String.fromInt model.padding)
+                ]
+                []
+            ]
         , ColorPicker.colorPicker
             { id = "background-color"
             , label = "Background color"
@@ -641,7 +659,7 @@ toCanvas model =
     let
         canvas =
             { height = toFloat model.height, width = toFloat model.width }
-                |> Canvas.newCanvas model.svgDomId (toFloat model.spaceBetween)
+                |> Canvas.newCanvas model.svgDomId (toFloat model.spaceBetween) (toFloat model.padding)
 
         ( layoutDirection, elements ) =
             []
