@@ -232,13 +232,23 @@ iconElement attrs iconSize =
 
 
 alignItems : Align -> Align -> Canvas msg -> Canvas msg
-alignItems alignHorizontal alignVertical canvas =
+alignItems horizontalAlignment verticalAlignment canvas =
     let
         content =
             getContentSize canvas
     in
+    canvas
+        |> alignItemsHorizontally horizontalAlignment content.width
+        |> alignItemsVertically verticalAlignment content.height
+
+
+alignItemsHorizontally : Align -> Float -> Canvas msg -> Canvas msg
+alignItemsHorizontally alignHorizontal contentWidth canvas =
     case canvas.direction of
-        Vertical ->
+        Horizontal ->
+            canvas
+
+        _ ->
             case alignHorizontal of
                 Start ->
                     canvas
@@ -254,7 +264,7 @@ alignItems alignHorizontal alignVertical canvas =
                         |> updateElementsPosition
                             (\size pos ->
                                 { pos
-                                    | x = pos.x + (content.width / 2) - (size.width / 2)
+                                    | x = pos.x + (contentWidth / 2) - (size.width / 2)
                                 }
                             )
 
@@ -263,11 +273,18 @@ alignItems alignHorizontal alignVertical canvas =
                         |> updateElementsPosition
                             (\size pos ->
                                 { pos
-                                    | x = pos.x + content.width - size.width
+                                    | x = pos.x + contentWidth - size.width
                                 }
                             )
 
-        Horizontal ->
+
+alignItemsVertically : Align -> Float -> Canvas msg -> Canvas msg
+alignItemsVertically alignVertical contentHeight canvas =
+    case canvas.direction of
+        Vertical ->
+            canvas
+
+        _ ->
             case alignVertical of
                 Start ->
                     canvas
@@ -277,7 +294,7 @@ alignItems alignHorizontal alignVertical canvas =
                         |> updateElementsPosition
                             (\size pos ->
                                 { pos
-                                    | y = pos.y + (content.height / 2) - (size.height / 2)
+                                    | y = pos.y + (contentHeight / 2) - (size.height / 2)
                                 }
                             )
 
@@ -286,60 +303,7 @@ alignItems alignHorizontal alignVertical canvas =
                         |> updateElementsPosition
                             (\size pos ->
                                 { pos
-                                    | y = pos.y + content.height - size.height
-                                }
-                            )
-
-        Stacked ->
-            let
-                verticallyAlignedCanvas =
-                    case alignVertical of
-                        Start ->
-                            canvas
-
-                        Center ->
-                            canvas
-                                |> updateElementsPosition
-                                    (\size pos ->
-                                        { pos
-                                            | y = pos.y + (content.height / 2) - (size.height / 2)
-                                        }
-                                    )
-
-                        End ->
-                            canvas
-                                |> updateElementsPosition
-                                    (\size pos ->
-                                        { pos
-                                            | y = pos.y + content.height - size.height
-                                        }
-                                    )
-            in
-            case alignHorizontal of
-                Start ->
-                    verticallyAlignedCanvas
-                        |> updateElementsPosition
-                            (\_ pos ->
-                                { pos
-                                    | x = 0
-                                }
-                            )
-
-                Center ->
-                    verticallyAlignedCanvas
-                        |> updateElementsPosition
-                            (\size pos ->
-                                { pos
-                                    | x = pos.x + (content.width / 2) - (size.width / 2)
-                                }
-                            )
-
-                End ->
-                    verticallyAlignedCanvas
-                        |> updateElementsPosition
-                            (\size pos ->
-                                { pos
-                                    | x = pos.x + content.width - size.width
+                                    | y = pos.y + contentHeight - size.height
                                 }
                             )
 
