@@ -90,6 +90,7 @@ type LayoutDirection
     | BottomToTop
     | LeftToRight
     | RightToLeft
+    | Stacked
 
 
 type alias Model =
@@ -480,6 +481,7 @@ vIconFields model =
                             , SB.optionIcon LeftToRight "Left to right" UI.arrowRight
                             , SB.optionIcon BottomToTop "Bottom to top" UI.arrowUp
                             , SB.optionIcon RightToLeft "Right to left" UI.arrowLeft
+                            , SB.optionIcon Stacked "Stacked" UI.background
                             ]
                         , selected = model.layoutDirection
                         , onSelect = SetLayoutDirection
@@ -735,3 +737,6 @@ sortCanvasElements direction elements =
 
         LeftToRight ->
             ( Canvas.layoutHorizontal, elements )
+
+        Stacked ->
+            ( Canvas.layoutStacked, elements )

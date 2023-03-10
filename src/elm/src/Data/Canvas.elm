@@ -15,6 +15,7 @@ module Data.Canvas exposing
     , alignStart
     , iconElement
     , layoutHorizontal
+    , layoutStacked
     , layoutVertical
     , newCanvas
     , textElement
@@ -35,6 +36,7 @@ import VirtualDom
 type Direction
     = Vertical
     | Horizontal
+    | Stacked
 
 
 layoutVertical : Direction
@@ -45,6 +47,11 @@ layoutVertical =
 layoutHorizontal : Direction
 layoutHorizontal =
     Horizontal
+
+
+layoutStacked : Direction
+layoutStacked =
+    Stacked
 
 
 type Align
@@ -169,6 +176,12 @@ getContentSize { elements, direction, spacing } =
                             | height = max elementSize.height size.height
                             , width = elementSize.width + addSpacing + size.width
                         }
+
+                    Stacked ->
+                        { size
+                            | height = max elementSize.height size.height
+                            , width = max elementSize.width size.width
+                        }
             )
             newSize
 
@@ -196,6 +209,9 @@ addElement element canvas =
 
                             Horizontal ->
                                 { x = contentSize.width + spacing + x, y = y }
+
+                            Stacked ->
+                                { x = x, y = y }
                     )
     in
     { canvas | elements = canvas.elements ++ [ updElement ] }
@@ -271,6 +287,59 @@ alignItems alignHorizontal alignVertical canvas =
                             (\size pos ->
                                 { pos
                                     | y = pos.y + content.height - size.height
+                                }
+                            )
+
+        Stacked ->
+            let
+                verticallyAlignedCanvas =
+                    case alignVertical of
+                        Start ->
+                            canvas
+
+                        Center ->
+                            canvas
+                                |> updateElementsPosition
+                                    (\size pos ->
+                                        { pos
+                                            | y = pos.y + (content.height / 2) - (size.height / 2)
+                                        }
+                                    )
+
+                        End ->
+                            canvas
+                                |> updateElementsPosition
+                                    (\size pos ->
+                                        { pos
+                                            | y = pos.y + content.height - size.height
+                                        }
+                                    )
+            in
+            case alignHorizontal of
+                Start ->
+                    verticallyAlignedCanvas
+                        |> updateElementsPosition
+                            (\_ pos ->
+                                { pos
+                                    | x = 0
+                                }
+                            )
+
+                Center ->
+                    verticallyAlignedCanvas
+                        |> updateElementsPosition
+                            (\size pos ->
+                                { pos
+                                    | x = pos.x + (content.width / 2) - (size.width / 2)
+                                }
+                            )
+
+                End ->
+                    verticallyAlignedCanvas
+                        |> updateElementsPosition
+                            (\size pos ->
+                                { pos
+                                    | x = pos.x + content.width - size.width
                                 }
                             )
 
