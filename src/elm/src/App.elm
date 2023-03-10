@@ -12,6 +12,7 @@ import Data.Percentage as Percentage
 import Helper.ColorPicker as ColorPicker
 import Helper.Contrast as Contrast
 import Helper.Form as HF
+import Helper.Html as HH
 import Helper.SegmentButton as SB
 import Helper.Style as Style
 import Helper.SvgInput as IconInput
@@ -510,6 +511,7 @@ vIconFields model =
                     , value = String.fromInt model.spaceBetween
                     , onInput = SetSpaceBetween
                     }
+                    |> HH.renderIf (model.layoutDirection /= Stacked)
                 , ColorPicker.colorPicker
                     { id = "icon-color"
                     , label = "Color"
@@ -538,6 +540,7 @@ vIconFields model =
                         (ColorPicker.getColor model.svgColor)
                         model.iconOpacity
                     ]
+                    |> HH.renderIf (model.layoutDirection /= Stacked)
                 , H.button
                     [ Style.deleteButton, HA.class "flex gap-2 items-center fill-white", HE.onClick DeleteSvg ]
                     [ UI.delete 18, H.span [ HA.class "block" ] [ H.text "Remove icon" ] ]
