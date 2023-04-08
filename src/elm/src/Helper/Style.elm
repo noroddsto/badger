@@ -44,6 +44,11 @@ deleteButton =
     HA.class "rounded transition border border-red-700 bg-red-700 text-white hover:bg-red-800  hover:border-red-800 disabled:bg-red-800:50 disabled:cursor-not-allowed py-2 px-3 shadow-md active:shadow-sm text-sm font-bold variant-caps-all-small-caps"
 
 
+smallSecondaryButton : H.Attribute msg
+smallSecondaryButton =
+    HA.class "rounded transition border border-blue-600 hover:bg-slate-50 hover:text-blue-700 hover:border-blue-700 text-blue-600 disabled:bg-gray-400  disabled:cursor-not-allowed py-2 px-3 shadow-md active:shadow-sm text-sm font-bold variant-caps-all-small-caps"
+
+
 h2 : H.Attribute msg
 h2 =
     HA.class "font-baijamjuree text-3xl mb-8 text-slate-800"
@@ -52,3 +57,13 @@ h2 =
 h3 : H.Attribute msg
 h3 =
     HA.class "font-baijamjuree font-medium text-lg mb-3 text-cyan-800"
+
+
+topbarButton : H.Attribute msg
+topbarButton =
+    HA.class "font-bold variant-caps-all-small-caps text-base px-4 py-2 rounded-lg border-1 text-md  disabled:cursor-not-allowed hover:disabled:bg-white disabled:text-gray-400 hover:bg-purple-50 text-purple-700 hover:text-purple-800"
+
+
+iconButton : H.Attribute msg
+iconButton =
+    HA.class "p-4 rounded-full block border-1 text-md hover:disabled:bg-white disabled:cursor-not-allowed disabled:fill-gray-400 hover:bg-purple-50 fill-purple-700 hover:fill-purple-800"

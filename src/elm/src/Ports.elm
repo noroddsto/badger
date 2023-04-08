@@ -21,13 +21,13 @@ port savePreset : JE.Value -> Cmd msg
 port savePresetResponse : (JE.Value -> msg) -> Sub msg
 
 
-port listPresets : () -> Cmd msg
-
-
-port listPresetsResponse : (JE.Value -> msg) -> Sub msg
-
-
 port loadPreset : String -> Cmd msg
 
 
 port loadPresetResponse : (JE.Value -> msg) -> Sub msg
+
+
+port deletePreset : String -> Cmd msg
+
+
+port deletePresetResponse : (JE.Value -> msg) -> Sub msg

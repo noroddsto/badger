@@ -2,7 +2,14 @@ import '../images/badger.png'
 import { Elm } from "../elm/src/App.elm";
 
 
-const app = Elm.App.init();
+const localStorage = window.localStorage;
+const presetList = localStorage ? Object.keys(localStorage) : [];
+const flags = {
+    supportLocalStorage: localStorage != null,
+    presetList
+};
+
+const app = Elm.App.init({ flags });
 
 app.ports.openDialog.subscribe((domId) => {
     requestAnimationFrame(() => {
@@ -37,7 +44,7 @@ app.ports.log.subscribe((json) => {
     console.log(json);
 });
 
-const localStorage = window.localStorage;
+
 
 app.ports.savePreset.subscribe(({ key, payload }) => {
     if (localStorage) {
@@ -48,14 +55,6 @@ app.ports.savePreset.subscribe(({ key, payload }) => {
     }
 });
 
-app.ports.listPresets.subscribe(() => {
-    if (localStorage) {
-        const keys = Object.keys(localStorage);
-        app.ports.listPresetsResponse.send({ data: keys });
-    } else {
-        app.ports.listPresetsResponse.send({ error: 'Localstorage not available' });
-    }
-});
 
 app.ports.loadPreset.subscribe((key) => {
     if (localStorage) {
@@ -69,5 +68,14 @@ app.ports.loadPreset.subscribe((key) => {
 
     } else {
         app.ports.loadPresetResponse.send({ error: 'Localstorage not available' });
+    }
+});
+
+app.ports.deletePreset.subscribe((key) => {
+    if (localStorage) {
+        const result = localStorage.removeItem(key)
+        app.ports.deletePresetResponse.send({ data: key });
+    } else {
+        app.ports.deletePresetResponse.send({ error: 'Localstorage not available' });
     }
 })

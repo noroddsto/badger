@@ -14,7 +14,6 @@ import Helper.ColorPicker as ColorPicker
 import Helper.Contrast as Contrast
 import Helper.Form as HF
 import Helper.Html as HH
-import Helper.LoadData as LD
 import Helper.Preset as Preset
 import Helper.SegmentButton as SB
 import Helper.Style as Style
@@ -38,7 +37,13 @@ import Task
 -- INIT
 
 
-main : Program () Model Msg
+type alias Flags =
+    { supportLocalStorage : Bool
+    , presetList : List String
+    }
+
+
+main : Program Flags Model Msg
 main =
     Browser.document
         { init = init
@@ -48,8 +53,8 @@ main =
         }
 
 
-init : () -> ( Model, Cmd Msg )
-init () =
+init : Flags -> ( Model, Cmd Msg )
+init { supportLocalStorage, presetList } =
     ( { size = Percentage.fromInt 25
       , svgInput = Nothing
       , confirmedSvg = Nothing
@@ -74,11 +79,16 @@ init () =
       , alignHorizontal = Canvas.alignCenter
       , alignVertical = Canvas.alignCenter
       , padding = 0
-      , topBar = TbNone
       , currentPreset = Preset.noPreset
       , editPresetName = Nothing
-      , availablePresets = LD.notLoaded
+      , presetList =
+            if supportLocalStorage then
+                Just presetList
+
+            else
+                Nothing
       , showSelectPresetDialog = False
+      , askToDeletePreset = Nothing
       }
     , Cmd.batch
         [ getTextboxDimension
@@ -94,12 +104,6 @@ type alias ElementSize =
 
 
 -- MODEL
-
-
-type TopBarMenu
-    = TbNone
-    | TbPreset
-    | TbHelp
 
 
 type alias Model =
@@ -127,11 +131,11 @@ type alias Model =
     , alignHorizontal : Canvas.Align
     , alignVertical : Canvas.Align
     , padding : Int
-    , topBar : TopBarMenu
     , currentPreset : Preset.PresetState
     , editPresetName : Maybe String
-    , availablePresets : LD.Data String (List String)
+    , presetList : Maybe (List String)
     , showSelectPresetDialog : Bool
+    , askToDeletePreset : Maybe String
     }
 
 
@@ -171,18 +175,20 @@ type Msg
     | SetHorizontalAlign Canvas.Align
     | SetPadding String
     | LogJson JE.Value
-    | SetTopBarMenu TopBarMenu
     | SavePreset
     | SetPresetName String
     | EditPresetName
     | EditPresetWasCancelled
     | SavePresetResponse (Result JD.Error String)
-    | GetAvailablePresets
-    | GetAvailablePresetsResult (Result JD.Error (List String))
     | LoadPreset String
     | LoadPresetResult (Result JD.Error Preset.Preset)
     | PresetModalWasClosed
     | SavePresetSameName
+    | OpenPresetDialog
+    | DeletePreset String
+    | DeletePresetResponse (Result JD.Error String)
+    | AskToDeletePreset String
+    | CancelDeletePreset
 
 
 savePresetModalConfig : Modal.DialogConfig Msg
@@ -199,8 +205,8 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Preset.savePresetResponse SavePresetResponse
-        , Preset.listPresetsResponse GetAvailablePresetsResult
         , Preset.loadPresetResponse LoadPresetResult
+        , Preset.deletePresetResponse DeletePresetResponse
         ]
 
 
@@ -363,9 +369,6 @@ update msg model =
         LogJson json ->
             ( model, Ports.log json )
 
-        SetTopBarMenu newMenu ->
-            ( { model | topBar = newMenu }, Cmd.none )
-
         SavePreset ->
             case model.editPresetName of
                 Just "" ->
@@ -395,7 +398,7 @@ update msg model =
                     Preset.getName model.currentPreset
                         |> Maybe.withDefault ""
             in
-            ( { model | editPresetName = Just presetName, topBar = TbNone }
+            ( { model | editPresetName = Just presetName }
             , Ports.openDialog savePresetModalConfig.id
             )
 
@@ -410,7 +413,7 @@ update msg model =
                         preset =
                             { key = name, payload = modelToPresetPayload model }
                     in
-                    ( { model | currentPreset = Preset.saving name, editPresetName = Nothing, topBar = TbNone }
+                    ( { model | currentPreset = Preset.saving name, editPresetName = Nothing }
                     , Ports.savePreset (Preset.toJson preset)
                     )
 
@@ -418,19 +421,27 @@ update msg model =
                     update EditPresetName model
 
         SavePresetResponse (Ok presetName) ->
-            ( { model | currentPreset = Preset.saved presetName }, Cmd.none )
+            ( { model
+                | currentPreset = Preset.saved presetName
+                , presetList =
+                    model.presetList
+                        |> Maybe.map
+                            (\items ->
+                                if List.member presetName items then
+                                    items
+
+                                else
+                                    presetName :: items
+                            )
+              }
+            , Cmd.none
+            )
 
         SavePresetResponse (Err err) ->
             ( { model | currentPreset = Preset.failed (JD.errorToString err) }, Cmd.none )
 
-        GetAvailablePresets ->
-            ( { model | availablePresets = LD.loading }, Ports.listPresets () )
-
-        GetAvailablePresetsResult (Ok presets) ->
-            ( { model | availablePresets = LD.ready presets, showSelectPresetDialog = True }, Ports.openDialog loadPresetModalConfig.id )
-
-        GetAvailablePresetsResult (Err e) ->
-            ( { model | availablePresets = LD.error (JD.errorToString e) }, Cmd.none )
+        OpenPresetDialog ->
+            ( { model | showSelectPresetDialog = True }, Ports.openDialog loadPresetModalConfig.id )
 
         LoadPreset presetName ->
             ( model, Ports.loadPreset presetName )
@@ -442,7 +453,39 @@ update msg model =
             ( { model | currentPreset = Preset.failed (JD.errorToString e) }, Cmd.none )
 
         PresetModalWasClosed ->
-            ( { model | showSelectPresetDialog = False }, Cmd.none )
+            ( { model | showSelectPresetDialog = False, askToDeletePreset = Nothing }, Cmd.none )
+
+        DeletePreset name ->
+            ( model, Ports.deletePreset name )
+
+        DeletePresetResponse (Ok name) ->
+            ( { model
+                | presetList =
+                    model.presetList
+                        |> Maybe.map
+                            (\items ->
+                                items
+                                    |> List.filter (\i -> i /= name)
+                            )
+                , currentPreset =
+                    if Preset.getName model.currentPreset == Just name then
+                        Preset.noPreset
+
+                    else
+                        model.currentPreset
+                , askToDeletePreset = Nothing
+              }
+            , Cmd.none
+            )
+
+        DeletePresetResponse (Err _) ->
+            ( model, Cmd.none )
+
+        AskToDeletePreset name ->
+            ( { model | askToDeletePreset = Just name }, Cmd.none )
+
+        CancelDeletePreset ->
+            ( { model | askToDeletePreset = Nothing }, Cmd.none )
 
 
 applyPreset : Preset.Preset -> Model -> Model
@@ -503,27 +546,27 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Badger"
     , body =
-        [ H.main_ [ HA.class "h-screen", closeMenuOnClick model.menuToggled, closeTopBarMenuOnClick model.topBar ]
+        [ H.main_ [ HA.class "h-screen", closeMenuOnClick model.menuToggled ]
             [ H.h1 [ HA.class "sr-only" ] [ H.text "Create badges" ]
             , H.div [ HA.class "h-full flex flex-col bg-gray-100 lg:grid lg:[grid-template-areas:'topbar_topbar'_'canvas_sidebar'] lg:grid-cols-[1fr_auto] lg:grid-rows-[auto_1fr]" ]
-                [ vTopbar model.topBar model.currentPreset
+                [ vTopbar model.currentPreset
                 , vCanvas model
                 , vSettingsForm model
                 ]
             , vSavePresetModal model.editPresetName
-            , vLoadPresetModal model.showSelectPresetDialog model.availablePresets
+            , vLoadPresetModal model.showSelectPresetDialog model.askToDeletePreset model.presetList
             ]
         ]
     }
 
 
-vLoadPresetModal : Bool -> LD.Data String (List String) -> H.Html Msg
-vLoadPresetModal showDialog ldItems =
+vLoadPresetModal : Bool -> Maybe String -> Maybe (List String) -> H.Html Msg
+vLoadPresetModal showDialog askToDeletePreset ldItems =
     if showDialog then
         Modal.dialog loadPresetModalConfig
-            [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Load preset" ] ]
+            [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "My presets" ] ]
             , (ldItems
-                |> LD.mapReady
+                |> Maybe.map
                     (\items ->
                         case items of
                             [] ->
@@ -531,115 +574,90 @@ vLoadPresetModal showDialog ldItems =
 
                             _ ->
                                 H.ul [ HA.class "overflow-scroll max-h-[30vh]" ]
-                                    (items
-                                        |> List.map
-                                            (\item ->
-                                                H.li []
-                                                    [ H.button
-                                                        [ HE.onClick (LoadPreset item)
-                                                        , HA.class "px-4 py-2 flex items-center gap-2 hover:bg-slate-50"
-                                                        ]
-                                                        [ H.span [ HA.class "fill-gray-400" ] [ UI.file 36 ]
-                                                        , H.span [ HA.class "text-gray-800 text-sm" ] [ H.text item ]
-                                                        ]
-                                                    ]
-                                            )
-                                    )
+                                    (List.map (vPresetListItem askToDeletePreset) items)
                     )
               )
-                |> LD.withDefault (H.text "")
+                |> Maybe.withDefault (H.text "")
             ]
 
     else
         H.text ""
 
 
-vTopbar : TopBarMenu -> Preset.PresetState -> H.Html Msg
-vTopbar selectedItem currentPreset =
-    H.div [ HA.class "[grid-area:topbar] min-h-[40px] p-2 bg-white drop-shadow-[2px_2px_4px_rgba(0,0,0,0.15)] px-6 z-10 grid grid-cols-[1fr_auto_1fr]" ]
-        [ topbarMenu selectedItem
-            [ topbarSubmenu selectedItem
-                TbPreset
-                "Presets"
-                [ MenuItem "Load" GetAvailablePresets
-                , MenuItem "Save" SavePresetSameName
-                , MenuItem "Save as" EditPresetName
-                ]
-            , topbarSubmenu selectedItem
-                TbHelp
-                "Help"
-                [ MenuItem "About" NoOp
-                ]
+vPresetListItem : Maybe String -> String -> H.Html Msg
+vPresetListItem askToDeleteItem itemName =
+    let
+        askToDelete =
+            askToDeleteItem == Just itemName
+    in
+    H.li [ HA.class "flex border-b gap-2 pr-4 items-center" ]
+        [ H.button
+            [ HE.onClick (LoadPreset itemName)
+            , HA.class "flex-1 px-4 py-2 flex items-center gap-2 hover:bg-slate-50"
             ]
+            [ H.span [ HA.class "fill-gray-400" ] [ UI.file 48 ]
+            , H.span [ HA.class "text-gray-800 text-sm" ] [ H.text itemName ]
+            ]
+        , if askToDelete then
+            H.div [ HA.class "flex items-center gap-3 px-4 py-3 bg-gray-100" ]
+                [ H.span [] [ H.text "Delete this item?" ]
+                , H.button [ Style.deleteButton, HE.onClick (DeletePreset itemName) ]
+                    [ H.text "Yes"
+                    ]
+                , H.button [ Style.smallSecondaryButton, HE.onClick CancelDeletePreset ]
+                    [ H.text "No"
+                    ]
+                ]
+
+          else
+            H.button [ Style.iconButton, HE.onClick (AskToDeletePreset itemName) ]
+                [ UI.delete 24
+                , H.span [ HA.class "sr-only" ]
+                    [ H.text "Delete" ]
+                ]
+        ]
+
+
+vTopbar : Preset.PresetState -> H.Html Msg
+vTopbar currentPreset =
+    H.div [ HA.class "[grid-area:topbar] min-h-[40px] p-2 bg-white drop-shadow-[2px_2px_4px_rgba(0,0,0,0.15)] px-8 z-10 grid grid-cols-[1fr_auto_1fr] text-sm text-zinc-700" ]
+        [ H.span [] [ H.text "Badger" ]
         , topbarPresetName currentPreset
+        , H.button [ HA.class "justify-self-end", Style.topbarButton, HE.onClick OpenPresetDialog ] [ H.text "My presets" ]
         ]
 
 
 topbarPresetName : Preset.PresetState -> H.Html Msg
 topbarPresetName presetState =
-    H.div [ HA.class "flex items-center text-sm text-zinc-700" ]
-        [ presetState
-            |> Preset.render
-                { whenNoPreset =
-                    \() ->
-                        H.text ""
-                , whenSaving =
-                    \name ->
-                        H.text ("Saving: " ++ name)
-                , whenSaved =
-                    \name didChange ->
-                        if didChange then
-                            H.span [ HA.class "py-2 px-4 rounded-xl bg-pink-200" ] [ H.text ("* " ++ name) ]
+    presetState
+        |> Preset.render
+            { whenNoPreset =
+                \() ->
+                    H.div [ HA.class "flex gap-2" ]
+                        [ H.button [ HA.class "py-2 px-4 border-b", HE.onClick EditPresetName ] [ H.text ("* " ++ "Untitled") ]
+                        , H.button [ HE.onClick SavePresetSameName, Style.topbarButton ] [ H.text "Save" ]
+                        ]
+            , whenSaving =
+                \name ->
+                    H.text ("Saving: " ++ name)
+            , whenSaved =
+                \name didChange ->
+                    let
+                        viewName =
+                            if didChange then
+                                "* " ++ name
 
-                        else
-                            H.span [ HA.class "py-2 px-4 rounded-xl bg-green-200" ] [ H.text name ]
-                , whenFailed =
-                    \_ ->
-                        H.text ""
-                }
-        ]
-
-
-topbarMenu : TopBarMenu -> List (H.Html Msg) -> H.Html Msg
-topbarMenu selectedItem =
-    H.ul [ HA.class "flex gap-4", stopPropagationOnClick (selectedItem /= TbNone) ]
-
-
-type alias MenuItem msg =
-    { title : String
-    , onClick : msg
-    }
-
-
-topbarSubmenu : TopBarMenu -> TopBarMenu -> String -> List (MenuItem Msg) -> H.Html Msg
-topbarSubmenu selectedItem thisMenu title menuItems =
-    H.li [ HA.class "block relative" ]
-        [ H.button
-            [ HE.onClick
-                (if selectedItem == thisMenu then
-                    SetTopBarMenu TbNone
-
-                 else
-                    SetTopBarMenu thisMenu
-                )
-            , HA.class "text-slate-900 hover:bg-slate-200 hover:text-slate-900 p-2"
-            , HA.classList [ ( "text-white bg-slate-800", selectedItem == thisMenu ) ]
-            ]
-            [ H.text title ]
-        , H.ul
-            [ HA.class "absolute bg-white flex flex-col"
-            , HA.classList [ ( "hidden", selectedItem /= thisMenu ) ]
-            ]
-            (List.map topbarMenuItem menuItems)
-        ]
-
-
-topbarMenuItem : MenuItem Msg -> H.Html Msg
-topbarMenuItem { title, onClick } =
-    H.li [ HA.class "flex-1" ]
-        [ H.button [ HA.class "text-left px-6 py-2 hover:bg-slate-200 block w-full whitespace-nowrap", HE.onClick onClick ]
-            [ H.text title ]
-        ]
+                            else
+                                name
+                    in
+                    H.div [ HA.class "flex gap-2" ]
+                        [ H.button [ HA.class "py-2 px-4 border-b", HE.onClick EditPresetName ] [ H.text viewName ]
+                        , H.button [ HE.onClick SavePresetSameName, Style.topbarButton, HA.disabled (not didChange) ] [ H.text "Save" ]
+                        ]
+            , whenFailed =
+                \_ ->
+                    H.text ""
+            }
 
 
 vCanvas : Model -> H.Html Msg
@@ -668,15 +686,6 @@ closeMenuOnClick : Bool -> H.Attribute Msg
 closeMenuOnClick menuToggled =
     if menuToggled then
         HE.onClick ToggleMenu
-
-    else
-        HH.emptyAttribute
-
-
-closeTopBarMenuOnClick : TopBarMenu -> H.Attribute Msg
-closeTopBarMenuOnClick selectedItem =
-    if selectedItem /= TbNone then
-        HE.onClick (SetTopBarMenu TbNone)
 
     else
         HH.emptyAttribute
@@ -993,7 +1002,7 @@ vSavePresetModal mbEditPresetName =
     case mbEditPresetName of
         Just name ->
             Modal.dialog savePresetModalConfig
-                [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Save preset" ] ]
+                [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Give your preset a name" ] ]
                 , H.form [ HA.class "flex flex-col", HE.onSubmit SavePreset ]
                     [ HF.field
                         [ HF.labelFor "preset-name" "Name"

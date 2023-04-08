@@ -3,9 +3,9 @@ module Helper.Preset exposing
     , Preset
     , PresetState
     , changed
+    , deletePresetResponse
     , failed
     , getName
-    , listPresetsResponse
     , loadPresetResponse
     , noPreset
     , render
@@ -157,19 +157,6 @@ decodeResponse =
         ]
 
 
-listPresetsResponse : (Result JD.Error (List String) -> msg) -> Sub msg
-listPresetsResponse msg =
-    Ports.listPresetsResponse (msg << JD.decodeValue decodePresetList)
-
-
-decodePresetList : JD.Decoder (List String)
-decodePresetList =
-    JD.oneOf
-        [ JD.at [ "data" ] (JD.list JD.string)
-        , JD.at [ "error" ] JD.string |> JD.andThen JD.fail
-        ]
-
-
 loadPresetResponse : (Result JD.Error Preset -> msg) -> Sub msg
 loadPresetResponse msg =
     Ports.loadPresetResponse (msg << JD.decodeValue decodePresetResponse)
@@ -179,6 +166,19 @@ decodePresetResponse : JD.Decoder Preset
 decodePresetResponse =
     JD.oneOf
         [ JD.at [ "data" ] decodePreset
+        , JD.at [ "error" ] JD.string |> JD.andThen JD.fail
+        ]
+
+
+deletePresetResponse : (Result JD.Error String -> msg) -> Sub msg
+deletePresetResponse msg =
+    Ports.deletePresetResponse (msg << JD.decodeValue decodeDeletePresetResponse)
+
+
+decodeDeletePresetResponse : JD.Decoder String
+decodeDeletePresetResponse =
+    JD.oneOf
+        [ JD.at [ "data" ] JD.string
         , JD.at [ "error" ] JD.string |> JD.andThen JD.fail
         ]
 
