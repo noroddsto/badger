@@ -13,6 +13,8 @@ module Data.Canvas exposing
     , alignEnd
     , alignItems
     , alignStart
+    , alignmentDecoder
+    , alignmentEncoder
     , iconElement
     , layoutHorizontal
     , layoutStacked
@@ -28,6 +30,8 @@ import Data.FontSize as FontSize
 import Data.FontWeight as FontWeight
 import Data.Percentage as Percentage
 import Helper.Svg
+import Json.Decode as JD
+import Json.Encode as JE
 import Svg
 import Svg.Attributes as SA
 import VirtualDom
@@ -480,3 +484,41 @@ defs canvas =
                         Nothing
             )
         |> Svg.defs []
+
+
+alignmentDecoder : JD.Decoder Align
+alignmentDecoder =
+    JD.string
+        |> JD.andThen
+            (\alignTxt ->
+                case alignTxt of
+                    "start" ->
+                        JD.succeed Start
+
+                    "center" ->
+                        JD.succeed Center
+
+                    "end" ->
+                        JD.succeed End
+
+                    _ ->
+                        JD.fail "Invalid alignment"
+            )
+
+
+alignToString : Align -> String
+alignToString align =
+    case align of
+        Start ->
+            "start"
+
+        Center ->
+            "center"
+
+        End ->
+            "end"
+
+
+alignmentEncoder : Align -> JE.Value
+alignmentEncoder =
+    JE.string << alignToString

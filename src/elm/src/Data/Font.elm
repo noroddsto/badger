@@ -1,4 +1,7 @@
-module Data.Font exposing (Font, FontData, FontList, availableFonts, default, getCapHeight, getData, getFont, getName)
+module Data.Font exposing (Font, FontData, FontList, availableFonts, default, fontDecoder, fontEncoder, getCapHeight, getData, getFont, getName)
+
+import Json.Decode as JD
+import Json.Encode as JE
 
 
 type Font
@@ -74,3 +77,22 @@ getName (Font _ name _) =
 getCapHeight : Font -> Float
 getCapHeight (Font _ _ capHeight) =
     capHeight
+
+
+fontDecoder : JD.Decoder Font
+fontDecoder =
+    JD.string
+        |> JD.andThen
+            (\fontKey ->
+                case getFont fontKey availableFonts of
+                    Just font ->
+                        JD.succeed font
+
+                    Nothing ->
+                        JD.fail "Font not available"
+            )
+
+
+fontEncoder : Font -> JE.Value
+fontEncoder (Font key _ _) =
+    JE.string key

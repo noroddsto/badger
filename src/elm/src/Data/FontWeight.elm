@@ -1,4 +1,7 @@
-module Data.FontWeight exposing (FontWeight, bold, fromString, isBold, normal, toString)
+module Data.FontWeight exposing (FontWeight, bold, fontWeightDecoder, fontWeightEncoder, fromString, isBold, normal, toString)
+
+import Json.Decode as JD
+import Json.Encode as JE
 
 
 type FontWeight
@@ -42,3 +45,22 @@ fromString fontWeight =
 
         _ ->
             Nothing
+
+
+fontWeightDecoder : JD.Decoder FontWeight
+fontWeightDecoder =
+    JD.string
+        |> JD.andThen
+            (\fwTxt ->
+                case fromString fwTxt of
+                    Just fontWeight ->
+                        JD.succeed fontWeight
+
+                    Nothing ->
+                        JD.fail "Invalid font weight"
+            )
+
+
+fontWeightEncoder : FontWeight -> JE.Value
+fontWeightEncoder =
+    JE.string << toString

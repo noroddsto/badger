@@ -19,10 +19,10 @@ type alias DialogConfig msg =
 dialog : DialogConfig msg -> List (H.Html msg) -> H.Html msg
 dialog { id, closeDialog, dialogWasClosed } content =
     H.node "dialog"
-        [ HA.id "dialog"
+        [ HA.id id
         , HE.on "click" (toEvent (closeDialog id))
         , HE.on "close" (JD.succeed dialogWasClosed)
-        , HA.class "min-w-[70vw] min-h-[70vh] shadow-lg p-8 relative"
+        , HA.class "min-w-[40vw] max-h-[70vh] shadow-lg p-8 relative"
         ]
         (H.button [ HA.class "absolute top-4 right-4", HE.onClick dialogWasClosed ]
             [ Icon.close 24

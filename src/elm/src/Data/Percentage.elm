@@ -1,4 +1,7 @@
-module Data.Percentage exposing (Percentage, fromInt, toFloat_, toString, toValueString)
+module Data.Percentage exposing (Percentage, fromInt, percentageDecoder, percentageEncoder, toFloat_, toString, toValueString)
+
+import Json.Decode as JD
+import Json.Encode as JE
 
 
 type Percentage
@@ -30,3 +33,13 @@ toString (Pct val) =
 toFloat_ : Percentage -> Float
 toFloat_ (Pct size) =
     toFloat size / 100
+
+
+percentageDecoder : JD.Decoder Percentage
+percentageDecoder =
+    JD.int |> JD.map fromInt
+
+
+percentageEncoder : Percentage -> JE.Value
+percentageEncoder (Pct pct) =
+    JE.int pct

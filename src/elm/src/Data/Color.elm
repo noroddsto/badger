@@ -1,7 +1,9 @@
-module Data.Color exposing (Hex, Rgb, black, contrast, fromString, toHexString, toRgb, transparentColorToRgb, white)
+module Data.Color exposing (Hex, Rgb, black, colorDecoder, colorEncoder, contrast, fromString, toHexString, toRgb, transparentColorToRgb, white)
 
 import Data.Percentage as Percentage
 import Hex
+import Json.Decode as JD
+import Json.Encode as JE
 import Regex
 import Result
 
@@ -193,3 +195,22 @@ contrast color1 color2 =
 
     else
         l2 / l1
+
+
+colorDecoder : JD.Decoder Hex
+colorDecoder =
+    JD.string
+        |> JD.andThen
+            (\hexCode ->
+                case fromString hexCode of
+                    Ok color ->
+                        JD.succeed color
+
+                    Err error ->
+                        JD.fail error
+            )
+
+
+colorEncoder : Hex -> JE.Value
+colorEncoder =
+    JE.string << toHexString

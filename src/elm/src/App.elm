@@ -8,11 +8,14 @@ import Data.Color as Color
 import Data.Font as Font
 import Data.FontSize as FontSize
 import Data.FontWeight as FontWeight
+import Data.LayoutDirection as Layout
 import Data.Percentage as Percentage
 import Helper.ColorPicker as ColorPicker
 import Helper.Contrast as Contrast
 import Helper.Form as HF
 import Helper.Html as HH
+import Helper.LoadData as LD
+import Helper.Preset as Preset
 import Helper.SegmentButton as SB
 import Helper.Style as Style
 import Helper.SvgInput as IconInput
@@ -21,6 +24,8 @@ import Html as H
 import Html.Attributes as HA
 import Html.Events as HE
 import Icon.UI as UI
+import Json.Decode as JD
+import Json.Encode as JE
 import Ports
 import Random
 import Random.Char
@@ -53,7 +58,7 @@ init () =
       , width = 200
       , height = 100
       , backgroundColor = ColorPicker.init Color.white
-      , layoutDirection = TopToBottom
+      , layoutDirection = Layout.topToBottom
       , spaceBetween = 0
       , fontSize = FontSize.toPx 24
       , fontFamily = Font.default
@@ -69,6 +74,11 @@ init () =
       , alignHorizontal = Canvas.alignCenter
       , alignVertical = Canvas.alignCenter
       , padding = 0
+      , topBar = TbNone
+      , currentPreset = Preset.noPreset
+      , editPresetName = Nothing
+      , availablePresets = LD.notLoaded
+      , showSelectPresetDialog = False
       }
     , Cmd.batch
         [ getTextboxDimension
@@ -86,19 +96,17 @@ type alias ElementSize =
 -- MODEL
 
 
-type LayoutDirection
-    = TopToBottom
-    | BottomToTop
-    | LeftToRight
-    | RightToLeft
-    | Stacked
+type TopBarMenu
+    = TbNone
+    | TbPreset
+    | TbHelp
 
 
 type alias Model =
     { width : Int
     , height : Int
     , backgroundColor : ColorPicker.ColorInput
-    , layoutDirection : LayoutDirection
+    , layoutDirection : Layout.LayoutDirection
     , spaceBetween : Int
     , fontFamily : Font.Font
     , fontSize : FontSize.FontSize
@@ -119,6 +127,11 @@ type alias Model =
     , alignHorizontal : Canvas.Align
     , alignVertical : Canvas.Align
     , padding : Int
+    , topBar : TopBarMenu
+    , currentPreset : Preset.PresetState
+    , editPresetName : Maybe String
+    , availablePresets : LD.Data String (List String)
+    , showSelectPresetDialog : Bool
     }
 
 
@@ -131,7 +144,7 @@ type Msg
     | SetWidth String
     | SetHeight String
     | SetSpaceBetween String
-    | SetLayoutDirection LayoutDirection
+    | SetLayoutDirection Layout.LayoutDirection
     | SetBackgroundColor ColorPicker.ColorInput
     | SetMainText String
     | SetFontSize String
@@ -157,11 +170,38 @@ type Msg
     | SetVerticalAlign Canvas.Align
     | SetHorizontalAlign Canvas.Align
     | SetPadding String
+    | LogJson JE.Value
+    | SetTopBarMenu TopBarMenu
+    | SavePreset
+    | SetPresetName String
+    | EditPresetName
+    | EditPresetWasCancelled
+    | SavePresetResponse (Result JD.Error String)
+    | GetAvailablePresets
+    | GetAvailablePresetsResult (Result JD.Error (List String))
+    | LoadPreset String
+    | LoadPresetResult (Result JD.Error Preset.Preset)
+    | PresetModalWasClosed
+    | SavePresetSameName
+
+
+savePresetModalConfig : Modal.DialogConfig Msg
+savePresetModalConfig =
+    { id = "save-preset", closeDialog = ModalClicked, dialogWasClosed = EditPresetWasCancelled }
+
+
+loadPresetModalConfig : Modal.DialogConfig Msg
+loadPresetModalConfig =
+    { id = "load-preset", closeDialog = ModalClicked, dialogWasClosed = PresetModalWasClosed }
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Sub.batch
+        [ Preset.savePresetResponse SavePresetResponse
+        , Preset.listPresetsResponse GetAvailablePresetsResult
+        , Preset.loadPresetResponse LoadPresetResult
+        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -171,19 +211,19 @@ update msg model =
             ( model, Cmd.none )
 
         SetWidth newValue ->
-            { model | width = parseInt newValue }
+            { model | width = parseInt newValue, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
 
         SetHeight newValue ->
-            { model | height = parseInt newValue }
+            { model | height = parseInt newValue, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
 
         SetSpaceBetween newValue ->
-            { model | spaceBetween = parseInt newValue }
+            { model | spaceBetween = parseInt newValue, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
 
         SetLayoutDirection newValue ->
-            { model | layoutDirection = newValue }
+            { model | layoutDirection = newValue, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
 
         SetMainText newValue ->
@@ -191,11 +231,11 @@ update msg model =
                 |> withCmd getTextboxDimension
 
         SetFontSize newValue ->
-            { model | fontSize = FontSize.toPx << parseInt <| newValue }
+            { model | fontSize = FontSize.toPx << parseInt <| newValue, currentPreset = Preset.changed model.currentPreset }
                 |> withCmd getTextboxDimension
 
         SetFontWeight value ->
-            { model | fontWeight = FontWeight.fromString value |> Maybe.withDefault model.fontWeight }
+            { model | fontWeight = FontWeight.fromString value |> Maybe.withDefault model.fontWeight, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
 
         SetSvgSize newValue ->
@@ -206,6 +246,7 @@ update msg model =
                             |> String.toInt
                             |> Maybe.withDefault 0
                         )
+                , currentPreset = Preset.changed model.currentPreset
             }
                 |> noCmd
 
@@ -234,7 +275,11 @@ update msg model =
                 |> Maybe.andThen IconInput.getElement
                 |> Maybe.map
                     (\element ->
-                        { model | confirmedSvg = Just element, svgInput = Nothing }
+                        { model
+                            | confirmedSvg = Just element
+                            , svgInput = Nothing
+                            , currentPreset = Preset.changed model.currentPreset
+                        }
                     )
                 |> Maybe.withDefault model
                 |> noCmd
@@ -255,6 +300,7 @@ update msg model =
                 | fontFamily =
                     Font.getFont newFontKey model.availableFonts
                         |> Maybe.withDefault model.fontFamily
+                , currentPreset = Preset.changed model.currentPreset
               }
             , getTextboxDimension
             )
@@ -267,6 +313,7 @@ update msg model =
                             |> String.toInt
                             |> Maybe.withDefault 0
                         )
+                , currentPreset = Preset.changed model.currentPreset
             }
                 |> noCmd
 
@@ -278,6 +325,7 @@ update msg model =
                             |> String.toInt
                             |> Maybe.withDefault 0
                         )
+                , currentPreset = Preset.changed model.currentPreset
             }
                 |> noCmd
 
@@ -288,13 +336,13 @@ update msg model =
             ( { model | menuToggled = not model.menuToggled }, Cmd.none )
 
         SetBackgroundColor color ->
-            ( { model | backgroundColor = color }, Cmd.none )
+            ( { model | backgroundColor = color, currentPreset = Preset.changed model.currentPreset }, Cmd.none )
 
         SetSvgColor color ->
-            ( { model | svgColor = color }, Cmd.none )
+            ( { model | svgColor = color, currentPreset = Preset.changed model.currentPreset }, Cmd.none )
 
         SetTextColor color ->
-            ( { model | textColor = color }, Cmd.none )
+            ( { model | textColor = color, currentPreset = Preset.changed model.currentPreset }, Cmd.none )
 
         SetIconDomId newId ->
             ( { model | iconDomId = "icon-" ++ newId }, Cmd.none )
@@ -303,14 +351,142 @@ update msg model =
             ( { model | svgDomId = "svg-" ++ newId }, Cmd.none )
 
         SetHorizontalAlign align ->
-            ( { model | alignHorizontal = align }, Cmd.none )
+            ( { model | alignHorizontal = align, currentPreset = Preset.changed model.currentPreset }, Cmd.none )
 
         SetVerticalAlign align ->
-            ( { model | alignVertical = align }, Cmd.none )
+            ( { model | alignVertical = align, currentPreset = Preset.changed model.currentPreset }, Cmd.none )
 
         SetPadding newValue ->
-            { model | padding = parseInt newValue }
+            { model | padding = parseInt newValue, currentPreset = Preset.changed model.currentPreset }
                 |> noCmd
+
+        LogJson json ->
+            ( model, Ports.log json )
+
+        SetTopBarMenu newMenu ->
+            ( { model | topBar = newMenu }, Cmd.none )
+
+        SavePreset ->
+            case model.editPresetName of
+                Just "" ->
+                    ( { model | currentPreset = Preset.noPreset, editPresetName = Nothing }, Cmd.none )
+
+                Just name ->
+                    let
+                        preset =
+                            { key = name, payload = modelToPresetPayload model }
+                    in
+                    ( { model | currentPreset = Preset.saving name, editPresetName = Nothing }, Ports.savePreset (Preset.toJson preset) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SetPresetName newName ->
+            model.editPresetName
+                |> Maybe.map
+                    (\_ ->
+                        ( { model | editPresetName = Just newName }, Cmd.none )
+                    )
+                |> Maybe.withDefault ( model, Cmd.none )
+
+        EditPresetName ->
+            let
+                presetName =
+                    Preset.getName model.currentPreset
+                        |> Maybe.withDefault ""
+            in
+            ( { model | editPresetName = Just presetName, topBar = TbNone }
+            , Ports.openDialog savePresetModalConfig.id
+            )
+
+        EditPresetWasCancelled ->
+            { model | editPresetName = Nothing }
+                |> noCmd
+
+        SavePresetSameName ->
+            case Preset.getName model.currentPreset of
+                Just name ->
+                    let
+                        preset =
+                            { key = name, payload = modelToPresetPayload model }
+                    in
+                    ( { model | currentPreset = Preset.saving name, editPresetName = Nothing, topBar = TbNone }
+                    , Ports.savePreset (Preset.toJson preset)
+                    )
+
+                Nothing ->
+                    update EditPresetName model
+
+        SavePresetResponse (Ok presetName) ->
+            ( { model | currentPreset = Preset.saved presetName }, Cmd.none )
+
+        SavePresetResponse (Err err) ->
+            ( { model | currentPreset = Preset.failed (JD.errorToString err) }, Cmd.none )
+
+        GetAvailablePresets ->
+            ( { model | availablePresets = LD.loading }, Ports.listPresets () )
+
+        GetAvailablePresetsResult (Ok presets) ->
+            ( { model | availablePresets = LD.ready presets, showSelectPresetDialog = True }, Ports.openDialog loadPresetModalConfig.id )
+
+        GetAvailablePresetsResult (Err e) ->
+            ( { model | availablePresets = LD.error (JD.errorToString e) }, Cmd.none )
+
+        LoadPreset presetName ->
+            ( model, Ports.loadPreset presetName )
+
+        LoadPresetResult (Ok preset) ->
+            ( model |> applyPreset preset, Cmd.batch [ Ports.closeDialog loadPresetModalConfig.id, getTextboxDimension ] )
+
+        LoadPresetResult (Err e) ->
+            ( { model | currentPreset = Preset.failed (JD.errorToString e) }, Cmd.none )
+
+        PresetModalWasClosed ->
+            ( { model | showSelectPresetDialog = False }, Cmd.none )
+
+
+applyPreset : Preset.Preset -> Model -> Model
+applyPreset { key, payload } model =
+    { model
+        | currentPreset = Preset.saved key
+        , fontSize = payload.fontSize
+        , height = payload.height
+        , width = payload.width
+        , size = payload.size
+        , backgroundColor = ColorPicker.init payload.backgroundColor
+        , spaceBetween = payload.spaceBetween
+        , fontFamily = payload.fontFamily
+        , textColor = ColorPicker.init payload.textColor
+        , fontWeight = payload.fontWeight
+        , svgColor = ColorPicker.init payload.svgColor
+        , textOpacity = payload.textOpacity
+        , iconOpacity = payload.iconOpacity
+        , padding = payload.padding
+        , alignHorizontal = payload.alignHorizontal
+        , alignVertical = payload.alignVertical
+        , layoutDirection = payload.layoutDirection
+    }
+
+
+modelToPresetPayload : Model -> Preset.Payload
+modelToPresetPayload model =
+    { fontSize = model.fontSize
+    , height = model.height
+    , width = model.width
+    , size = model.size
+    , backgroundColor = ColorPicker.getColor model.backgroundColor
+    , spaceBetween = model.spaceBetween
+    , fontFamily = model.fontFamily
+    , textColor = ColorPicker.getColor model.textColor
+    , fontWeight = model.fontWeight
+    , svgColor = ColorPicker.getColor model.svgColor
+    , textOpacity = model.textOpacity
+    , iconOpacity = model.iconOpacity
+    , padding = model.padding
+    , alignHorizontal = model.alignHorizontal
+    , alignVertical = model.alignVertical
+    , layoutDirection = model.layoutDirection
+    }
 
 
 getTextboxDimension : Cmd Msg
@@ -327,32 +503,188 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Badger"
     , body =
-        [ H.main_ [ HA.class "h-screen" ]
+        [ H.main_ [ HA.class "h-screen", closeMenuOnClick model.menuToggled, closeTopBarMenuOnClick model.topBar ]
             [ H.h1 [ HA.class "sr-only" ] [ H.text "Create badges" ]
-            , H.div [ HA.class "h-full flex bg-gray-100" ]
-                [ H.div [ HA.class "flex-auto p-4 relative bg-grid" ]
-                    [ H.div [ HA.class "absolute top-0 bottom-0 left-0 right-0 overflow-auto flex items-center justify-center" ]
-                        [ H.div [] [ rSvg model ]
-                        ]
-                    , H.button
-                        [ HE.onClick ToggleMenu
-                        , HA.class "absolute right-6 top-6 lg:hidden"
-                        , HA.classList [ ( "hidden", model.menuToggled ) ]
-                        ]
-                        [ UI.menu 24
-                        , H.span [ HA.class "sr-only" ] [ H.text "Open settings menu" ]
-                        ]
-                    , H.button
-                        [ HE.onClick DownloadSvg
-                        , HA.class "absolute right-6 bottom-6 bg-blue-700 hover:bg-blue-800 active:scale-95 hover:scale-105 transition-all fill-white rounded-full shadow-5xl p-2"
-                        ]
-                        [ UI.download 36, H.span [ HA.class "sr-only" ] [ H.text "Download svg" ] ]
-                    ]
+            , H.div [ HA.class "h-full flex flex-col bg-gray-100 lg:grid lg:[grid-template-areas:'topbar_topbar'_'canvas_sidebar'] lg:grid-cols-[1fr_auto] lg:grid-rows-[auto_1fr]" ]
+                [ vTopbar model.topBar model.currentPreset
+                , vCanvas model
                 , vSettingsForm model
                 ]
+            , vSavePresetModal model.editPresetName
+            , vLoadPresetModal model.showSelectPresetDialog model.availablePresets
             ]
         ]
     }
+
+
+vLoadPresetModal : Bool -> LD.Data String (List String) -> H.Html Msg
+vLoadPresetModal showDialog ldItems =
+    if showDialog then
+        Modal.dialog loadPresetModalConfig
+            [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Load preset" ] ]
+            , (ldItems
+                |> LD.mapReady
+                    (\items ->
+                        case items of
+                            [] ->
+                                H.p [ HA.class "text-gray-600 text-sm" ] [ H.text "You haven't saved any presets yet :-/" ]
+
+                            _ ->
+                                H.ul [ HA.class "overflow-scroll max-h-[30vh]" ]
+                                    (items
+                                        |> List.map
+                                            (\item ->
+                                                H.li []
+                                                    [ H.button
+                                                        [ HE.onClick (LoadPreset item)
+                                                        , HA.class "px-4 py-2 flex items-center gap-2 hover:bg-slate-50"
+                                                        ]
+                                                        [ H.span [ HA.class "fill-gray-400" ] [ UI.file 36 ]
+                                                        , H.span [ HA.class "text-gray-800 text-sm" ] [ H.text item ]
+                                                        ]
+                                                    ]
+                                            )
+                                    )
+                    )
+              )
+                |> LD.withDefault (H.text "")
+            ]
+
+    else
+        H.text ""
+
+
+vTopbar : TopBarMenu -> Preset.PresetState -> H.Html Msg
+vTopbar selectedItem currentPreset =
+    H.div [ HA.class "[grid-area:topbar] min-h-[40px] p-2 bg-white drop-shadow-[2px_2px_4px_rgba(0,0,0,0.15)] px-6 z-10 grid grid-cols-[1fr_auto_1fr]" ]
+        [ topbarMenu selectedItem
+            [ topbarSubmenu selectedItem
+                TbPreset
+                "Presets"
+                [ MenuItem "Load" GetAvailablePresets
+                , MenuItem "Save" SavePresetSameName
+                , MenuItem "Save as" EditPresetName
+                ]
+            , topbarSubmenu selectedItem
+                TbHelp
+                "Help"
+                [ MenuItem "About" NoOp
+                ]
+            ]
+        , topbarPresetName currentPreset
+        ]
+
+
+topbarPresetName : Preset.PresetState -> H.Html Msg
+topbarPresetName presetState =
+    H.div [ HA.class "flex items-center text-sm text-zinc-700" ]
+        [ presetState
+            |> Preset.render
+                { whenNoPreset =
+                    \() ->
+                        H.text ""
+                , whenSaving =
+                    \name ->
+                        H.text ("Saving: " ++ name)
+                , whenSaved =
+                    \name didChange ->
+                        if didChange then
+                            H.span [ HA.class "py-2 px-4 rounded-xl bg-pink-200" ] [ H.text ("* " ++ name) ]
+
+                        else
+                            H.span [ HA.class "py-2 px-4 rounded-xl bg-green-200" ] [ H.text name ]
+                , whenFailed =
+                    \_ ->
+                        H.text ""
+                }
+        ]
+
+
+topbarMenu : TopBarMenu -> List (H.Html Msg) -> H.Html Msg
+topbarMenu selectedItem =
+    H.ul [ HA.class "flex gap-4", stopPropagationOnClick (selectedItem /= TbNone) ]
+
+
+type alias MenuItem msg =
+    { title : String
+    , onClick : msg
+    }
+
+
+topbarSubmenu : TopBarMenu -> TopBarMenu -> String -> List (MenuItem Msg) -> H.Html Msg
+topbarSubmenu selectedItem thisMenu title menuItems =
+    H.li [ HA.class "block relative" ]
+        [ H.button
+            [ HE.onClick
+                (if selectedItem == thisMenu then
+                    SetTopBarMenu TbNone
+
+                 else
+                    SetTopBarMenu thisMenu
+                )
+            , HA.class "text-slate-900 hover:bg-slate-200 hover:text-slate-900 p-2"
+            , HA.classList [ ( "text-white bg-slate-800", selectedItem == thisMenu ) ]
+            ]
+            [ H.text title ]
+        , H.ul
+            [ HA.class "absolute bg-white flex flex-col"
+            , HA.classList [ ( "hidden", selectedItem /= thisMenu ) ]
+            ]
+            (List.map topbarMenuItem menuItems)
+        ]
+
+
+topbarMenuItem : MenuItem Msg -> H.Html Msg
+topbarMenuItem { title, onClick } =
+    H.li [ HA.class "flex-1" ]
+        [ H.button [ HA.class "text-left px-6 py-2 hover:bg-slate-200 block w-full whitespace-nowrap", HE.onClick onClick ]
+            [ H.text title ]
+        ]
+
+
+vCanvas : Model -> H.Html Msg
+vCanvas model =
+    H.div [ HA.class "flex-auto p-4 relative bg-grid lg:[grid-area:canvas]" ]
+        [ H.div [ HA.class "absolute top-0 bottom-0 left-0 right-0 overflow-auto flex items-center justify-center" ]
+            [ H.div [] [ rSvg model ]
+            ]
+        , H.button
+            [ HE.onClick ToggleMenu
+            , HA.class "absolute right-6 top-6 lg:hidden"
+            , HA.classList [ ( "hidden", model.menuToggled ) ]
+            ]
+            [ UI.menu 24
+            , H.span [ HA.class "sr-only" ] [ H.text "Open settings menu" ]
+            ]
+        , H.button
+            [ HE.onClick DownloadSvg
+            , HA.class "absolute right-6 bottom-6 bg-blue-700 hover:bg-blue-800 active:scale-95 hover:scale-105 transition-all fill-white rounded-full shadow-5xl p-2"
+            ]
+            [ UI.download 36, H.span [ HA.class "sr-only" ] [ H.text "Download svg" ] ]
+        ]
+
+
+closeMenuOnClick : Bool -> H.Attribute Msg
+closeMenuOnClick menuToggled =
+    if menuToggled then
+        HE.onClick ToggleMenu
+
+    else
+        HH.emptyAttribute
+
+
+closeTopBarMenuOnClick : TopBarMenu -> H.Attribute Msg
+closeTopBarMenuOnClick selectedItem =
+    if selectedItem /= TbNone then
+        HE.onClick (SetTopBarMenu TbNone)
+
+    else
+        HH.emptyAttribute
+
+
+stopPropagationOnClick : Bool -> H.Attribute Msg
+stopPropagationOnClick menuToggled =
+    HE.stopPropagationOn "click" (JD.succeed ( NoOp, menuToggled ))
 
 
 vSettingsForm : Model -> H.Html Msg
@@ -360,8 +692,9 @@ vSettingsForm model =
     H.div
         [ HA.classList [ ( "translate-x-full", not model.menuToggled ) ]
         , HA.classList [ ( "translate-x-0", model.menuToggled ) ]
+        , stopPropagationOnClick model.menuToggled
         , HA.class
-            "fixed right-0 top-0 bottom-0 p-4 bg-white overflow-x-auto drop-shadow-[-2px_-2px_5px_rgba(0,0,0,0.15)] lg:relative lg:min-w-[380px] lg:inset-auto lg:flex-shrink-0 lg:block ease-in-out transition-all duration-300 lg:transform-none"
+            "fixed right-0 top-0 bottom-0 p-4 bg-white z-20 lg:z-0 overflow-x-auto drop-shadow-[-2px_2px_5px_rgba(0,0,0,0.15)] ease-in-out transition-all duration-300 lg:relative lg:min-w-[380px] lg:inset-auto lg:block lg:transform-none lg:[grid-area:sidebar] lg:drop-shadow-[-1px_1px_2px_rgba(0,0,0,0.15)] "
         ]
         [ H.h2 [ Style.h2 ] [ H.text "Settings" ]
         , H.button
@@ -478,11 +811,11 @@ vIconFields model =
                     [ SB.optionList
                         { name = "layout_direction"
                         , options =
-                            [ SB.optionIcon TopToBottom "Top to bottom" UI.arrowDown
-                            , SB.optionIcon LeftToRight "Left to right" UI.arrowRight
-                            , SB.optionIcon BottomToTop "Bottom to top" UI.arrowUp
-                            , SB.optionIcon RightToLeft "Right to left" UI.arrowLeft
-                            , SB.optionIcon Stacked "Stacked" UI.background
+                            [ SB.optionIcon Layout.topToBottom "Top to bottom" UI.arrowDown
+                            , SB.optionIcon Layout.leftToRight "Left to right" UI.arrowRight
+                            , SB.optionIcon Layout.bottomToTop "Bottom to top" UI.arrowUp
+                            , SB.optionIcon Layout.rightToLeft "Right to left" UI.arrowLeft
+                            , SB.optionIcon Layout.stacked "Stacked" UI.background
                             ]
                         , selected = model.layoutDirection
                         , onSelect = SetLayoutDirection
@@ -511,7 +844,7 @@ vIconFields model =
                     , value = String.fromInt model.spaceBetween
                     , onInput = SetSpaceBetween
                     }
-                    |> HH.renderIf (model.layoutDirection /= Stacked)
+                    |> HH.renderIf (model.layoutDirection /= Layout.stacked)
                 , ColorPicker.colorPicker
                     { id = "icon-color"
                     , label = "Color"
@@ -540,7 +873,7 @@ vIconFields model =
                         (ColorPicker.getColor model.svgColor)
                         model.iconOpacity
                     ]
-                    |> HH.renderIf (model.layoutDirection /= Stacked)
+                    |> HH.renderIf (model.layoutDirection /= Layout.stacked)
                 , H.button
                     [ Style.deleteButton, HA.class "flex gap-2 items-center fill-white", HE.onClick DeleteSvg ]
                     [ UI.delete 18, H.span [ HA.class "block" ] [ H.text "Remove icon" ] ]
@@ -629,10 +962,17 @@ vIconInputModal mbInput =
         Just input ->
             Modal.dialog customSvgModalConfig
                 [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Add custom SVG" ] ]
-                , H.form [ HA.class "flex flex-col h-full", HE.onSubmit ConfirmIconInput ]
+                , H.form [ HA.class "flex flex-col", HE.onSubmit ConfirmIconInput ]
                     [ H.div [ Style.field, HA.class "grow" ]
                         [ HF.labelFor "icon-svg-input" "Paste svg"
-                        , H.textarea [ HA.id "icon-svg-input", HA.value <| IconInput.getValue input, HE.onInput SetIconInput, Style.input, HA.class "grow" ] []
+                        , H.textarea
+                            [ HA.id "icon-svg-input"
+                            , HA.value <| IconInput.getValue input
+                            , HE.onInput SetIconInput
+                            , Style.input
+                            , HA.class "h-[30vh]"
+                            ]
+                            []
                         ]
                     , H.button
                         [ Style.primaryButton
@@ -641,6 +981,37 @@ vIconInputModal mbInput =
                         , HE.onClick ConfirmIconInput
                         ]
                         [ H.text "Save icon" ]
+                    ]
+                ]
+
+        Nothing ->
+            H.text ""
+
+
+vSavePresetModal : Maybe String -> H.Html Msg
+vSavePresetModal mbEditPresetName =
+    case mbEditPresetName of
+        Just name ->
+            Modal.dialog savePresetModalConfig
+                [ H.header [ HA.class "mb-6" ] [ H.h2 [ HA.class "text-2xl" ] [ H.text "Save preset" ] ]
+                , H.form [ HA.class "flex flex-col", HE.onSubmit SavePreset ]
+                    [ HF.field
+                        [ HF.labelFor "preset-name" "Name"
+                        , H.input
+                            [ Style.input
+                            , HA.type_ "text"
+                            , HA.value name
+                            , HA.id "preset-name"
+                            , HE.onInput SetPresetName
+                            , HA.required True
+                            ]
+                            []
+                        ]
+                    , H.button
+                        [ Style.primaryButton
+                        , HA.class "self-start px-8"
+                        ]
+                        [ H.text "Save preset" ]
                     ]
                 ]
 
@@ -726,20 +1097,13 @@ addIconElement model elements =
                 :: elements
 
 
-sortCanvasElements : LayoutDirection -> List (Canvas.Element msg) -> ( Canvas.Direction, List (Canvas.Element msg) )
+sortCanvasElements : Layout.LayoutDirection -> List (Canvas.Element msg) -> ( Canvas.Direction, List (Canvas.Element msg) )
 sortCanvasElements direction elements =
-    case direction of
-        BottomToTop ->
-            ( Canvas.layoutVertical, List.reverse elements )
-
-        RightToLeft ->
-            ( Canvas.layoutHorizontal, List.reverse elements )
-
-        TopToBottom ->
-            ( Canvas.layoutVertical, elements )
-
-        LeftToRight ->
-            ( Canvas.layoutHorizontal, elements )
-
-        Stacked ->
-            ( Canvas.layoutStacked, elements )
+    direction
+        |> Layout.when
+            { whenBottomToTop = \() -> ( Canvas.layoutVertical, List.reverse elements )
+            , whenRightToLeft = \() -> ( Canvas.layoutHorizontal, List.reverse elements )
+            , whenTopToBottom = \() -> ( Canvas.layoutVertical, elements )
+            , whenLeftToRight = \() -> ( Canvas.layoutHorizontal, elements )
+            , whenStacked = \() -> ( Canvas.layoutStacked, elements )
+            }

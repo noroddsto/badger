@@ -1,6 +1,7 @@
 import '../images/badger.png'
 import { Elm } from "../elm/src/App.elm";
 
+
 const app = Elm.App.init();
 
 app.ports.openDialog.subscribe((domId) => {
@@ -30,3 +31,43 @@ app.ports.downloadSvg.subscribe(({ domId, fileName }) => {
     }
 });
 
+
+
+app.ports.log.subscribe((json) => {
+    console.log(json);
+});
+
+const localStorage = window.localStorage;
+
+app.ports.savePreset.subscribe(({ key, payload }) => {
+    if (localStorage) {
+        localStorage.setItem(key, JSON.stringify(payload));
+        app.ports.savePresetResponse.send({ data: key });
+    } else {
+        app.ports.savePresetResponse.send({ error: 'Localstorage not available' });
+    }
+});
+
+app.ports.listPresets.subscribe(() => {
+    if (localStorage) {
+        const keys = Object.keys(localStorage);
+        app.ports.listPresetsResponse.send({ data: keys });
+    } else {
+        app.ports.listPresetsResponse.send({ error: 'Localstorage not available' });
+    }
+});
+
+app.ports.loadPreset.subscribe((key) => {
+    if (localStorage) {
+        const result = localStorage.getItem(key)
+        if (result) {
+            const payload = JSON.parse(result);
+            app.ports.loadPresetResponse.send({ data: { key, payload } });
+        } else {
+            app.ports.loadPresetResponse.send({ error: 'Key was not found' });
+        }
+
+    } else {
+        app.ports.loadPresetResponse.send({ error: 'Localstorage not available' });
+    }
+})

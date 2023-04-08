@@ -1,4 +1,7 @@
-module Data.FontSize exposing (FontSize, toInt, toPx, toValueString)
+module Data.FontSize exposing (FontSize, fontSizeDecoder, fontSizeEncoder, toInt, toPx, toValueString)
+
+import Json.Decode as JD
+import Json.Encode as JE
 
 
 type FontSize
@@ -18,3 +21,13 @@ toValueString (Px size) =
 toInt : FontSize -> Int
 toInt (Px size) =
     size
+
+
+fontSizeDecoder : JD.Decoder FontSize
+fontSizeDecoder =
+    JD.int |> JD.map toPx
+
+
+fontSizeEncoder : FontSize -> JE.Value
+fontSizeEncoder =
+    JE.int << toInt

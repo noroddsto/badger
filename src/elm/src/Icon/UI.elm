@@ -16,6 +16,7 @@ module Icon.UI exposing
     , close
     , delete
     , download
+    , file
     , menu
     )
 
@@ -204,5 +205,19 @@ background size =
         [ Svg.path
             [ SA.d "M9 42q-1.2 0-2.1-.9Q6 40.2 6 39V25.5h3V39h13.5v3Zm16.5 0v-3H39V25.5h3V39q0 1.2-.9 2.1-.9.9-2.1.9Zm-13.65-7.4 5.9-7.6 4.65 6.35L29 24.8l7.35 9.8ZM6 22.5V9q0-1.2.9-2.1Q7.8 6 9 6h13.5v3H9v13.5Zm33 0V9H25.5V6H39q1.2 0 2.1.9.9.9.9 2.1v13.5Zm-7.8-3q-1.15 0-1.925-.775-.775-.775-.775-1.925t.775-1.925q.775-.775 1.925-.775t1.925.775q.775.775.775 1.925t-.775 1.925q-.775.775-1.925.775Z"
             ]
+            []
+        ]
+
+
+file : Int -> Svg.Svg msg
+file size =
+    svg
+        [ SA.height (String.fromInt size)
+        , SA.width (String.fromInt size)
+        , SA.viewBox "0 96 960 960"
+        , VirtualDom.attribute "aria-hidden" "true"
+        ]
+        [ Svg.path
+            [ SA.d "M220 976q-24 0-42-18t-18-42V236q0-24 18-42t42-18h361l219 219v521q0 24-18 42t-42 18H220Zm331-554h189L551 236v186Z" ]
             []
         ]
