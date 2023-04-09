@@ -31,12 +31,12 @@ field =
 
 primaryButton : H.Attribute msg
 primaryButton =
-    HA.class "bg-blue-700 rounded transition hover:bg-blue-800 active:bg-blue-900 disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed text-white p-3 shadow-md active:shadow-sm font-bold variant-caps-all-small-caps"
+    HA.class "bg-indigo-700 rounded transition hover:bg-indigo-800 active:bg-indigo-900 disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed text-white p-3 shadow-md active:shadow-sm font-bold variant-caps-all-small-caps"
 
 
 secondaryButton : H.Attribute msg
 secondaryButton =
-    HA.class "rounded transition border border-blue-600 hover:bg-slate-50 hover:text-blue-700 hover:border-blue-700 text-blue-600 disabled:bg-gray-400  disabled:cursor-not-allowed p-3 font-bold variant-caps-all-small-caps"
+    HA.class "rounded transition border border-indigo-600 hover:bg-slate-50 hover:text-indigo-700 hover:border-indigo-700 text-indigo-600 disabled:bg-gray-400  disabled:cursor-not-allowed p-3 font-bold variant-caps-all-small-caps"
 
 
 deleteButton : H.Attribute msg
@@ -46,7 +46,7 @@ deleteButton =
 
 smallSecondaryButton : H.Attribute msg
 smallSecondaryButton =
-    HA.class "rounded transition border border-blue-600 hover:bg-slate-50 hover:text-blue-700 hover:border-blue-700 text-blue-600 disabled:bg-gray-400  disabled:cursor-not-allowed py-2 px-3 shadow-md active:shadow-sm text-sm font-bold variant-caps-all-small-caps"
+    HA.class "rounded transition border border-indigo-600 hover:bg-slate-50 hover:text-indigo-700 hover:border-indigo-700 text-indigo-600 disabled:bg-gray-400  disabled:cursor-not-allowed py-2 px-3 shadow-md active:shadow-sm text-sm font-bold variant-caps-all-small-caps"
 
 
 h2 : H.Attribute msg
@@ -61,9 +61,9 @@ h3 =
 
 topbarButton : H.Attribute msg
 topbarButton =
-    HA.class "font-bold variant-caps-all-small-caps text-base px-4 py-2 rounded-lg border-1 text-md  disabled:cursor-not-allowed hover:disabled:bg-white disabled:text-gray-400 hover:bg-purple-50 text-purple-700 hover:text-purple-800"
+    HA.class "font-bold variant-caps-all-small-caps text-base px-4 py-2 rounded-lg border-1 text-md  disabled:cursor-not-allowed hover:disabled:bg-white disabled:text-gray-400 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800"
 
 
 iconButton : H.Attribute msg
 iconButton =
-    HA.class "p-4 rounded-full block border-1 text-md hover:disabled:bg-white disabled:cursor-not-allowed disabled:fill-gray-400 hover:bg-purple-50 fill-purple-700 hover:fill-purple-800"
+    HA.class "p-4 rounded-full block border-1 text-md hover:disabled:bg-white disabled:cursor-not-allowed disabled:fill-gray-400 hover:bg-indigo-50 fill-indigo-700 hover:fill-indigo-800"

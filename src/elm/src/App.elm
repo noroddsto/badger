@@ -599,7 +599,7 @@ vPresetListItem askToDeleteItem itemName =
             , H.span [ HA.class "text-gray-800 text-sm" ] [ H.text itemName ]
             ]
         , if askToDelete then
-            H.div [ HA.class "flex items-center gap-3 px-4 py-3 bg-gray-100" ]
+            H.div [ HA.class "flex items-center gap-3 px-4 py-3" ]
                 [ H.span [] [ H.text "Delete this item?" ]
                 , H.button [ Style.deleteButton, HE.onClick (DeletePreset itemName) ]
                     [ H.text "Yes"
@@ -620,8 +620,8 @@ vPresetListItem askToDeleteItem itemName =
 
 vTopbar : Preset.PresetState -> H.Html Msg
 vTopbar currentPreset =
-    H.div [ HA.class "[grid-area:topbar] min-h-[40px] p-2 bg-white drop-shadow-[2px_2px_4px_rgba(0,0,0,0.15)] px-8 z-10 grid grid-cols-[1fr_auto_1fr] text-sm text-zinc-700" ]
-        [ H.span [] [ H.text "Badger" ]
+    H.div [ HA.class "[grid-area:topbar] min-h-[40px] p-2 bg-white drop-shadow-[2px_2px_4px_rgba(0,0,0,0.15)] px-8 z-10 grid grid-cols-[1fr_auto_1fr] text-sm text-gray-800" ]
+        [ H.span [ HA.class "self-center font-bold text-gray-600" ] [ H.text "Badger" ]
         , topbarPresetName currentPreset
         , H.button [ HA.class "justify-self-end", Style.topbarButton, HE.onClick OpenPresetDialog ] [ H.text "My presets" ]
         ]
@@ -676,7 +676,7 @@ vCanvas model =
             ]
         , H.button
             [ HE.onClick DownloadSvg
-            , HA.class "absolute right-6 bottom-6 bg-blue-700 hover:bg-blue-800 active:scale-95 hover:scale-105 transition-all fill-white rounded-full shadow-5xl p-2"
+            , HA.class "absolute right-6 bottom-6 bg-indigo-700 hover:bg-indigo-800 active:scale-95 hover:scale-105 transition-all fill-white rounded-full shadow-5xl p-2"
             ]
             [ UI.download 36, H.span [ HA.class "sr-only" ] [ H.text "Download svg" ] ]
         ]
@@ -808,7 +808,7 @@ vIconFields model =
             Nothing ->
                 [ H.h3 [ Style.h3, HA.class "sr-only" ] [ H.text "Icon" ]
                 , H.button
-                    [ HA.class "flex gap-3 items-center fill-blue-700 text-blue-700 hover:text-blue-800 hover:fill-blue-800 hover:underline"
+                    [ HA.class "flex gap-3 items-center fill-indigo-700 text-indigo-700 hover:text-indigo-800 hover:fill-indigo-800 hover:underline"
                     , HE.onClick AddSvg
                     ]
                     [ UI.addIcon 18, H.span [ HA.class "block" ] [ H.text "Add icon" ] ]
